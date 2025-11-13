@@ -1,0 +1,440 @@
+@import "tailwindcss";
+
+
+
+/* XP Notification Animation */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out;
+}
+
+:root {
+  /* African prosperity palette - emerald greens, terracotta, golden accents */
+  --background: oklch(0.98 0.01 85);
+  --foreground: oklch(0.15 0.02 60);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.15 0.02 60);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.15 0.02 60);
+
+  /* Golden accent as primary */
+  --primary: oklch(0.75 0.15 85);
+  --primary-foreground: oklch(0.15 0.02 60);
+
+  /* Emerald green as secondary */
+  --secondary: oklch(0.65 0.18 155);
+  --secondary-foreground: oklch(0.98 0.01 85);
+
+  --muted: oklch(0.95 0.01 85);
+  --muted-foreground: oklch(0.5 0.02 60);
+
+  /* Terracotta accent */
+  --accent: oklch(0.62 0.15 35);
+  --accent-foreground: oklch(0.98 0.01 85);
+
+  --destructive: oklch(0.55 0.22 25);
+  --destructive-foreground: oklch(0.98 0.01 85);
+
+  --border: oklch(0.9 0.01 85);
+  --input: oklch(0.9 0.01 85);
+  --ring: oklch(0.75 0.15 85);
+
+  /* Chart colors - African sunset inspired */
+  --chart-1: oklch(0.75 0.15 85);
+  /* Golden */
+  --chart-2: oklch(0.65 0.18 155);
+  /* Emerald */
+  --chart-3: oklch(0.62 0.15 35);
+  /* Terracotta */
+  --chart-4: oklch(0.7 0.2 45);
+  /* Orange */
+  --chart-5: oklch(0.55 0.16 165);
+  /* Teal */
+
+  --radius: 0.75rem;
+
+  --sidebar: oklch(0.98 0.01 85);
+  --sidebar-foreground: oklch(0.15 0.02 60);
+  --sidebar-primary: oklch(0.75 0.15 85);
+  --sidebar-primary-foreground: oklch(0.15 0.02 60);
+  --sidebar-accent: oklch(0.95 0.01 85);
+  --sidebar-accent-foreground: oklch(0.15 0.02 60);
+  --sidebar-border: oklch(0.9 0.01 85);
+  --sidebar-ring: oklch(0.75 0.15 85);
+
+  /* Success color for gains */
+  --success: oklch(0.65 0.18 155);
+  --success-foreground: oklch(0.98 0.01 85);
+}
+
+.dark {
+  --background: oklch(0.12 0.02 60);
+  --foreground: oklch(0.98 0.01 85);
+  --card: oklch(0.15 0.02 60);
+  --card-foreground: oklch(0.98 0.01 85);
+  --popover: oklch(0.15 0.02 60);
+  --popover-foreground: oklch(0.98 0.01 85);
+
+  --primary: oklch(0.8 0.15 85);
+  --primary-foreground: oklch(0.12 0.02 60);
+
+  --secondary: oklch(0.7 0.18 155);
+  --secondary-foreground: oklch(0.12 0.02 60);
+
+  --muted: oklch(0.2 0.02 60);
+  --muted-foreground: oklch(0.65 0.02 60);
+
+  --accent: oklch(0.65 0.15 35);
+  --accent-foreground: oklch(0.98 0.01 85);
+
+  --destructive: oklch(0.5 0.22 25);
+  --destructive-foreground: oklch(0.98 0.01 85);
+
+  --border: oklch(0.25 0.02 60);
+  --input: oklch(0.25 0.02 60);
+  --ring: oklch(0.8 0.15 85);
+
+  --chart-1: oklch(0.8 0.15 85);
+  --chart-2: oklch(0.7 0.18 155);
+  --chart-3: oklch(0.65 0.15 35);
+  --chart-4: oklch(0.75 0.2 45);
+  --chart-5: oklch(0.6 0.16 165);
+
+  --sidebar: oklch(0.15 0.02 60);
+  --sidebar-foreground: oklch(0.98 0.01 85);
+  --sidebar-primary: oklch(0.8 0.15 85);
+  --sidebar-primary-foreground: oklch(0.12 0.02 60);
+  --sidebar-accent: oklch(0.2 0.02 60);
+  --sidebar-accent-foreground: oklch(0.98 0.01 85);
+  --sidebar-border: oklch(0.25 0.02 60);
+  --sidebar-ring: oklch(0.8 0.15 85);
+
+  --success: oklch(0.7 0.18 155);
+  --success-foreground: oklch(0.12 0.02 60);
+}
+
+/* Base styles without @apply */
+* {
+  border-color: var(--border);
+  outline-color: var(--ring);
+  outline-offset: 2px;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/* African sunset gradient backgrounds */
+.gradient-sunset {
+  background: linear-gradient(135deg, oklch(0.75 0.15 85) 0%, oklch(0.7 0.2 45) 50%, oklch(0.62 0.15 35) 100%);
+}
+
+.gradient-prosperity {
+  background: linear-gradient(135deg, oklch(0.65 0.18 155) 0%, oklch(0.6 0.16 165) 100%);
+}
+
+/* Smooth animations */
+@keyframes price-up {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes price-down {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(4px);
+  }
+}
+
+.animate-price-up {
+  animation: price-up 0.6s ease-in-out;
+}
+
+.animate-price-down {
+  animation: price-down 0.6s ease-in-out;
+}
+
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 oklch(0.75 0.15 85 / 0.4);
+  }
+
+  50% {
+    box-shadow: 0 0 0 8px oklch(0.75 0.15 85 / 0);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Enhanced animations and cultural motifs */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes glow-pulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 20px oklch(0.75 0.15 85 / 0.3);
+  }
+
+  50% {
+    box-shadow: 0 0 40px oklch(0.75 0.15 85 / 0.6);
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent 0%, oklch(1 0 0 / 0.1) 50%, transparent 100%);
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.5s ease-out;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.3s ease-out;
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+/* African pattern overlay */
+.african-pattern {
+  position: relative;
+  overflow: hidden;
+}
+
+.african-pattern::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image:
+    repeating-linear-gradient(45deg, transparent, transparent 35px, oklch(0.75 0.15 85 / 0.03) 35px, oklch(0.75 0.15 85 / 0.03) 70px),
+    repeating-linear-gradient(-45deg, transparent, transparent 35px, oklch(0.65 0.18 155 / 0.03) 35px, oklch(0.65 0.18 155 / 0.03) 70px);
+  pointer-events: none;
+}
+
+/* Enhanced card hover effects */
+.card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px oklch(0 0 0 / 0.1);
+}
+
+/* Smooth transitions for all interactive elements */
+button,
+a,
+[role="button"] {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Enhanced gradient backgrounds with depth */
+.gradient-sunset-enhanced {
+  background: linear-gradient(135deg, oklch(0.75 0.15 85) 0%, oklch(0.72 0.18 65) 25%, oklch(0.7 0.2 45) 50%, oklch(0.65 0.17 30) 75%, oklch(0.62 0.15 35) 100%);
+  position: relative;
+}
+
+.gradient-sunset-enhanced::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 50%, oklch(1 0 0 / 0.1) 0%, transparent 50%);
+}
+
+.gradient-prosperity-enhanced {
+  background: linear-gradient(135deg, oklch(0.65 0.18 155) 0%, oklch(0.63 0.17 160) 50%, oklch(0.6 0.16 165) 100%);
+  position: relative;
+}
+
+.gradient-prosperity-enhanced::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 70% 50%, oklch(1 0 0 / 0.1) 0%, transparent 50%);
+}
+
+/* Micro-interaction for buttons */
+.btn-micro {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-micro::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: oklch(1 0 0 / 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.btn-micro:active::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* Enhanced tooltip styles */
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.5rem 0.75rem;
+  background: oklch(0.15 0.02 60);
+  color: oklch(0.98 0.01 85);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  z-index: 1000;
+  animation: slide-up 0.2s ease-out;
+}
+
+/* Additional utility classes for compatibility */
+.african-sunset {
+  background: linear-gradient(135deg, oklch(0.75 0.15 85) 0%, oklch(0.7 0.2 45) 25%, oklch(0.62 0.15 35) 50%, oklch(0.65 0.18 155) 75%, oklch(0.55 0.16 165) 100%);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.achievement-badge {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: var(--primary-foreground);
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  display: inline-block;
+}
+
+.trading-card {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.african-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  padding: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .african-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    padding: 1rem;
+  }
+}
+
+/* Backward compatibility aliases */
+.slide-up {
+  animation: slide-up 0.5s ease-out;
+}
+
+.float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.pulse-glow {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
