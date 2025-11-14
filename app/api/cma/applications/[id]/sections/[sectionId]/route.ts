@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/client'
+import { createTypedServerClient } from '@/lib/supabase/typed-client'
 
 // GET /api/cma/applications/[id]/sections/[sectionId] - Get single section
 export async function GET(
@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     const { id, sectionId } = await params;
-    const supabase = createClient()
+    const supabase = await createTypedServerClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -83,7 +83,7 @@ export async function PATCH(
   { params }: { params: { id: string; sectionId: string } }
 ) {
   try {
-    const supabase = createClient()
+    const supabase = await createTypedServerClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {

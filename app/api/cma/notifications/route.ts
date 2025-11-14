@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/client'
+import { createTypedServerClient } from '@/lib/supabase/typed-client'
 
 // GET /api/cma/notifications - Get user notifications
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = await createTypedServerClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
 // PATCH /api/cma/notifications - Mark notifications as read
 export async function PATCH(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = await createTypedServerClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -71,3 +71,4 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+
