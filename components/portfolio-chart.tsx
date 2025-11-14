@@ -41,7 +41,7 @@ export function PortfolioChart() {
             fontSize={12}
             tickLine={false}
             axisLine={false}
-            tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`}
+            tickFormatter={(value) => value ? `${(value / 1000).toFixed(0)}K` : '0K'}
           />
           <ChartTooltip content={<ChartTooltipContent />} />
           <Area
