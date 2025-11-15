@@ -221,56 +221,83 @@ export async function POST(request: NextRequest) {
           .eq('id', companyData.id)
       }
 
-      // Create IPO application for the company
-      const { data: applicationData, error: appError } = await supabaseAdmin
+      // Check if IPO application already exists for this company
+      const { data: existingApp } = await supabaseAdmin
         .from('ipo_applications')
-        .insert({
-          company_id: companyData.id,
-          status: 'DRAFT',
-          current_phase: 'TEAM_SETUP',
-          completion_percentage: 0
-        })
-        .select()
+        .select('*')
+        .eq('company_id', companyData.id)
         .single()
 
-      if (appError || !applicationData) {
-        console.error('Application creation error:', appError)
-        throw new Error('Failed to create IPO application')
+      let applicationData = existingApp
+
+      // Only create application if it doesn't exist
+      if (!existingApp) {
+        const { data: newApp, error: appError } = await supabaseAdmin
+          .from('ipo_applications')
+          .insert({
+            company_id: companyData.id,
+            status: 'DRAFT',
+            current_phase: 'TEAM_SETUP',
+            completion_percentage: 0
+          })
+          .select()
+          .single()
+
+        if (appError || !newApp) {
+          console.error('Application creation error:', appError)
+          throw new Error('Failed to create IPO application')
+        }
+        
+        applicationData = newApp
+      } else {
+        console.log('IPO application already exists, using existing:', existingApp.id)
       }
 
-      // Create all 10 sections for the application
-      const sectionTitles = [
-        'Company Identity & Legal Form',
-        'Capitalization & Financial Strength',
-        'Share Ownership & Distribution',
-        'Governance & Management',
-        'Legal & Regulatory Compliance',
-        'Offer Details (IPO Information)',
-        'Prospectus & Disclosure Checklist',
-        'Publication & Advertisement',
-        'Post-Approval Undertakings',
-        'Declarations & Contacts'
-      ];
-
-      const sectionRoles = ['CEO', 'CFO', 'CEO', 'CEO', 'LEGAL_ADVISOR', 'CFO', 'SECRETARY', 'SECRETARY', 'CEO', 'CEO'];
-
-      const sectionsToCreate = sectionTitles.map((title, index) => ({
-        application_id: applicationData.id,
-        section_number: index + 1,
-        section_title: title,
-        assigned_role: sectionRoles[index],
-        status: 'NOT_STARTED',
-        data: {},
-        completion_percentage: 0
-      }));
-
-      const { error: sectionsError } = await supabaseAdmin
+      // Check if sections already exist
+      const { data: existingSections } = await supabaseAdmin
         .from('application_sections')
-        .insert(sectionsToCreate)
+        .select('id')
+        .eq('application_id', applicationData.id)
 
-      if (sectionsError) {
-        console.error('Sections creation error:', sectionsError)
-        throw new Error('Failed to create application sections')
+      // Only create sections if they don't exist
+      if (!existingSections || existingSections.length === 0) {
+        const sectionTitles = [
+          'Company Identity & Legal Form',
+          'Capitalization & Financial Strength',
+          'Share Ownership & Distribution',
+          'Governance & Management',
+          'Legal & Regulatory Compliance',
+          'Offer Details (IPO Information)',
+          'Prospectus & Disclosure Checklist',
+          'Publication & Advertisement',
+          'Post-Approval Undertakings',
+          'Declarations & Contacts'
+        ];
+
+        const sectionRoles = ['CEO', 'CFO', 'CEO', 'CEO', 'LEGAL_ADVISOR', 'CFO', 'SECRETARY', 'SECRETARY', 'CEO', 'CEO'];
+
+        const sectionsToCreate = sectionTitles.map((title, index) => ({
+          application_id: applicationData.id,
+          section_number: index + 1,
+          section_title: title,
+          assigned_role: sectionRoles[index],
+          status: 'NOT_STARTED',
+          data: {},
+          completion_percentage: 0
+        }));
+
+        const { error: sectionsError } = await supabaseAdmin
+          .from('application_sections')
+          .insert(sectionsToCreate)
+
+        if (sectionsError) {
+          console.error('Sections creation error:', sectionsError)
+          throw new Error('Failed to create application sections')
+        }
+        
+        console.log('Created application sections')
+      } else {
+        console.log('Application sections already exist, skipping creation')
       }
 
       return NextResponse.json({
