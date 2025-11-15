@@ -67,22 +67,22 @@ export function IssuerTeamSignup({ onSuccess, onError, currentUser }: IssuerTeam
     description: ''
   });
 
-  // Team members - pre-fill with current user if available
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([
-    {
-      fullName: currentUser?.fullName || '',
-      email: currentUser?.email || '',
-      username: currentUser?.email?.split('@')[0] || '',
+  // Team members - pre-fill with current user if available (CEO is already logged in)
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(
+    currentUser ? [{
+      fullName: currentUser.fullName,
+      email: currentUser.email,
+      username: currentUser.email.split('@')[0],
       password: '********', // Placeholder since user is already logged in
-      role: currentUser?.role || 'CEO'
-    }
-  ]);
+      role: currentUser.role
+    }] : []
+  );
 
   const [selectedRole, setSelectedRole] = useState<IssuerRole>('CEO');
 
   // Update team members when currentUser becomes available
   React.useEffect(() => {
-    if (currentUser && teamMembers[0]) {
+    if (currentUser && teamMembers.length === 0) {
       setTeamMembers([{
         fullName: currentUser.fullName,
         email: currentUser.email,
@@ -91,7 +91,7 @@ export function IssuerTeamSignup({ onSuccess, onError, currentUser }: IssuerTeam
         role: currentUser.role
       }]);
     }
-  }, [currentUser]);
+  }, [currentUser, teamMembers.length]);
 
   const addTeamMember = (role: IssuerRole) => {
     // Check if role already exists
@@ -420,7 +420,9 @@ export function IssuerTeamSignup({ onSuccess, onError, currentUser }: IssuerTeam
                         </div>
                         <h3 className="text-lg font-semibold mb-2">Add {definition.title} to Your Team</h3>
                         <p className="text-sm text-gray-600 mb-4 max-w-md mx-auto">
-                          {role === 'CEO' 
+                          {role === 'CEO' && currentUser
+                            ? 'You are already registered as CEO. Click below to confirm your role.'
+                            : role === 'CEO' 
                             ? 'The CEO role is required for your team. Click below to add CEO details.'
                             : `Add a ${definition.title} to handle ${definition.responsibilities[0].toLowerCase()}`
                           }
@@ -430,8 +432,17 @@ export function IssuerTeamSignup({ onSuccess, onError, currentUser }: IssuerTeam
                           size="lg"
                           className="bg-blue-600 hover:bg-blue-700"
                         >
-                          <User className="h-5 w-5 mr-2" />
-                          Add {definition.title}
+                          {role === 'CEO' && currentUser ? (
+                            <>
+                              <CheckCircle className="h-5 w-5 mr-2" />
+                              Confirm as CEO
+                            </>
+                          ) : (
+                            <>
+                              <User className="h-5 w-5 mr-2" />
+                              Add {definition.title}
+                            </>
+                          )}
                         </Button>
                       </div>
                     )}
@@ -458,46 +469,77 @@ export function IssuerTeamSignup({ onSuccess, onError, currentUser }: IssuerTeam
                               </Button>
                             )}
                           </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-lg">
-                            <div>
-                              <Label>Full Name *</Label>
-                              <Input
-                                value={member.fullName}
-                                onChange={(e) => updateTeamMember(index, 'fullName', e.target.value)}
-                                placeholder="Enter full name"
-                                required
-                              />
+                          {role === 'CEO' && currentUser ? (
+                            // CEO is already logged in - show read-only info
+                            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                              <div className="flex items-center gap-2 mb-3">
+                                <CheckCircle className="h-5 w-5 text-green-600" />
+                                <p className="text-sm font-medium text-green-800">
+                                  You are already registered as CEO. Your account will be linked to this company.
+                                </p>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <Label className="text-gray-600">Full Name</Label>
+                                  <Input
+                                    value={member.fullName}
+                                    disabled
+                                    className="bg-white"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-gray-600">Email Address</Label>
+                                  <Input
+                                    value={member.email}
+                                    disabled
+                                    className="bg-white"
+                                  />
+                                </div>
+                              </div>
                             </div>
-                            <div>
-                              <Label>Email Address *</Label>
-                              <Input
-                                type="email"
-                                value={member.email}
-                                onChange={(e) => updateTeamMember(index, 'email', e.target.value)}
-                                placeholder="Enter email address"
-                                required
-                              />
+                          ) : (
+                            // New team member - editable fields
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-lg">
+                              <div>
+                                <Label>Full Name *</Label>
+                                <Input
+                                  value={member.fullName}
+                                  onChange={(e) => updateTeamMember(index, 'fullName', e.target.value)}
+                                  placeholder="Enter full name"
+                                  required
+                                />
+                              </div>
+                              <div>
+                                <Label>Email Address *</Label>
+                                <Input
+                                  type="email"
+                                  value={member.email}
+                                  onChange={(e) => updateTeamMember(index, 'email', e.target.value)}
+                                  placeholder="Enter email address"
+                                  required
+                                />
+                              </div>
+                              <div>
+                                <Label>Username *</Label>
+                                <Input
+                                  value={member.username}
+                                  onChange={(e) => updateTeamMember(index, 'username', e.target.value)}
+                                  placeholder="Enter username"
+                                  required
+                                />
+                              </div>
+                              <div>
+                                <Label>Password *</Label>
+                                <Input
+                                  type="password"
+                                  value={member.password}
+                                  onChange={(e) => updateTeamMember(index, 'password', e.target.value)}
+                                  placeholder="Enter password (min 8 characters)"
+                                  required
+                                />
+                              </div>
                             </div>
-                            <div>
-                              <Label>Username *</Label>
-                              <Input
-                                value={member.username}
-                                onChange={(e) => updateTeamMember(index, 'username', e.target.value)}
-                                placeholder="Enter username"
-                                required
-                              />
-                            </div>
-                            <div>
-                              <Label>Password *</Label>
-                              <Input
-                                type="password"
-                                value={member.password}
-                                onChange={(e) => updateTeamMember(index, 'password', e.target.value)}
-                                placeholder="Enter password (min 8 characters)"
-                                required
-                              />
-                            </div>
-                          </div>
+                          )}
                         </div>
                       )
                     )}
