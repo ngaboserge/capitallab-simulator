@@ -138,13 +138,25 @@ export function IssuerTeamSignup({ onSuccess, onError, currentUser }: IssuerTeam
     if (currentStep === 'team') {
       // Validate all team members
       for (const member of teamMembers) {
-        if (!member.fullName || !member.email || !member.username || !member.password) {
+        // Skip password validation for CEO if they're already logged in (currentUser exists)
+        const isCEO = member.role === 'CEO';
+        const isExistingCEO = isCEO && currentUser && member.email === currentUser.email;
+        
+        if (!member.fullName || !member.email || !member.username) {
           setError('All team member fields are required');
           return false;
         }
-        if (member.password.length < 8) {
-          setError('Passwords must be at least 8 characters long');
-          return false;
+        
+        // Only validate password for new team members (not existing CEO)
+        if (!isExistingCEO) {
+          if (!member.password) {
+            setError('All team member fields are required');
+            return false;
+          }
+          if (member.password.length < 8) {
+            setError('Passwords must be at least 8 characters long');
+            return false;
+          }
         }
       }
 
