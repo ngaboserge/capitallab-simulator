@@ -210,12 +210,20 @@ export function IssuerTeamSignup({ onSuccess, onError, currentUser }: IssuerTeam
   };
 
   const handleSubmit = async () => {
+    // Allow submitting with just CEO if no other team members added
+    if (teamMembers.length === 0) {
+      setError('At least the CEO must be added to the team');
+      return;
+    }
+    
     if (!validateStep('team')) return;
 
     setLoading(true);
     setError(null);
 
     try {
+      console.log('Submitting team:', teamMembers);
+      
       // Create company and team members
       const response = await fetch('/api/auth/signup-team', {
         method: 'POST',
