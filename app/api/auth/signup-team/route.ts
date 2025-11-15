@@ -222,16 +222,22 @@ export async function POST(request: NextRequest) {
       }
 
       // Check if IPO application already exists for this company
-      const { data: existingApp } = await supabaseAdmin
+      console.log('Checking for existing IPO application for company:', companyData.id)
+      const { data: existingApp, error: checkError } = await supabaseAdmin
         .from('ipo_applications')
         .select('*')
         .eq('company_id', companyData.id)
-        .single()
+        .maybeSingle()
+
+      if (checkError) {
+        console.error('Error checking for existing application:', checkError)
+      }
 
       let applicationData = existingApp
 
       // Only create application if it doesn't exist
       if (!existingApp) {
+        console.log('No existing application found, creating new one')
         const { data: newApp, error: appError } = await supabaseAdmin
           .from('ipo_applications')
           .insert({
@@ -243,17 +249,28 @@ export async function POST(request: NextRequest) {
           .select()
           .single()
 
-        if (appError || !newApp) {
+        if (appError) {
           console.error('Application creation error:', appError)
-          throw new Error('Failed to create IPO application')
+          throw new Error(`Failed to create IPO application: ${appError.message}`)
+        }
+        
+        if (!newApp) {
+          throw new Error('Failed to create IPO application: No data returned')
         }
         
         applicationData = newApp
+        console.log('New IPO application created:', applicationData.id)
       } else {
         console.log('IPO application already exists, using existing:', existingApp.id)
       }
 
+      // Ensure we have an application before proceeding
+      if (!applicationData || !applicationData.id) {
+        throw new Error('No IPO application available - this should not happen')
+      }
+
       // Check if sections already exist
+      console.log('Checking for existing sections for application:', applicationData.id)
       const { data: existingSections } = await supabaseAdmin
         .from('application_sections')
         .select('id')
