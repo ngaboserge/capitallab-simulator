@@ -140,7 +140,8 @@ export function IssuerTeamSignup({ onSuccess, onError, currentUser }: IssuerTeam
       for (const member of teamMembers) {
         // Skip password validation for CEO if they're already logged in (currentUser exists)
         const isCEO = member.role === 'CEO';
-        const isExistingCEO = isCEO && currentUser && member.email === currentUser.email;
+        const isExistingCEO = isCEO && currentUser && 
+          member.email?.toLowerCase().trim() === currentUser.email?.toLowerCase().trim();
         
         console.log('Validating member:', { 
           role: member.role, 
@@ -149,7 +150,10 @@ export function IssuerTeamSignup({ onSuccess, onError, currentUser }: IssuerTeam
           hasFullName: !!member.fullName,
           hasEmail: !!member.email,
           hasUsername: !!member.username,
-          hasPassword: !!member.password
+          hasPassword: !!member.password,
+          memberEmail: member.email,
+          currentUserEmail: currentUser?.email,
+          emailsMatch: member.email === currentUser?.email
         });
         
         if (!member.fullName || !member.email) {
