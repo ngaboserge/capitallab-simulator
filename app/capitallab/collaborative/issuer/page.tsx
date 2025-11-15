@@ -174,14 +174,7 @@ function IssuerPageContent() {
     // In real app, this would update the application status in the database
   };
 
-  // Debug logging
-  console.log('IssuerPage Debug:', { 
-    profile, 
-    loading: false, // We don't have loading state here
-    user: profile ? 'exists' : 'null',
-    company_id: profile?.company_id,
-    company_role: profile?.company_role 
-  });
+
 
   // Show loading state while checking authentication
   if (authLoading) {
@@ -302,37 +295,6 @@ function IssuerPageContent() {
         <div className="max-w-7xl mx-auto px-6 py-6">
           {profile.company_role && (
             <div>
-              {/* Debug Info - Remove this later */}
-              <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <h4 className="font-medium text-yellow-800 mb-2">Debug Info (Current User):</h4>
-                <div className="text-sm text-yellow-700 space-y-1">
-                  <p><strong>Username:</strong> {profile.username}</p>
-                  <p><strong>Role:</strong> {profile.role}</p>
-                  <p><strong>Company Role:</strong> {profile.company_role || 'None'}</p>
-                  <p><strong>Company ID:</strong> {profile.company_id || 'None'}</p>
-                  <p><strong>Full Name:</strong> {profile.full_name || 'None'}</p>
-                </div>
-                <div className="mt-3 flex gap-2">
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => {
-                      if (confirm('This will clear your company role so you can create a new team. Continue?')) {
-                        // In a real app, this would call an API to update the profile
-                        alert('In a real implementation, this would reset your company role. For now, you can manually update your database or create a new user account.');
-                      }
-                    }}
-                  >
-                    Reset Company Role
-                  </Button>
-                  <Link href="/auth/signup-team">
-                    <Button size="sm">
-                      Create New Team Anyway
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-
               {/* IB Advisor Feedback Alert */}
               {profile.company_id && (
                 <div className="mb-6">
