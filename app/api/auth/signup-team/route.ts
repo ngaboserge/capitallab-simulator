@@ -243,7 +243,7 @@ export async function POST(request: NextRequest) {
           .insert({
             company_id: companyData.id,
             status: 'DRAFT',
-            current_phase: 'TEAM_SETUP',
+            current_phase: 'PREPARATION', // Valid phase value
             completion_percentage: 0
           })
           .select()
