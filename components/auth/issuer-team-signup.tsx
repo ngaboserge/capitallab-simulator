@@ -136,8 +136,16 @@ export function IssuerTeamSignup({ onSuccess, onError, currentUser }: IssuerTeam
     }
 
     if (currentStep === 'team') {
+      // Filter out empty team members (members with no email)
+      const validMembers = teamMembers.filter(m => m.email && m.email.trim() !== '');
+      
+      if (validMembers.length === 0) {
+        setError('At least one team member is required');
+        return false;
+      }
+      
       // Validate all team members
-      for (const member of teamMembers) {
+      for (const member of validMembers) {
         // Skip password validation for CEO if they're already logged in (currentUser exists)
         const isCEO = member.role === 'CEO';
         const isExistingCEO = isCEO && currentUser && 
@@ -214,9 +222,11 @@ export function IssuerTeamSignup({ onSuccess, onError, currentUser }: IssuerTeam
   };
 
   const handleSubmit = async () => {
-    // Allow submitting with just CEO if no other team members added
-    if (teamMembers.length === 0) {
-      setError('At least the CEO must be added to the team');
+    // Filter out empty team members before validation and submission
+    const validMembers = teamMembers.filter(m => m.email && m.email.trim() !== '');
+    
+    if (validMembers.length === 0) {
+      setError('At least one team member must be added');
       return;
     }
     
@@ -226,15 +236,15 @@ export function IssuerTeamSignup({ onSuccess, onError, currentUser }: IssuerTeam
     setError(null);
 
     try {
-      console.log('Submitting team:', teamMembers);
+      console.log('Submitting team:', validMembers);
       
-      // Create company and team members
+      // Create company and team members (only valid ones)
       const response = await fetch('/api/auth/signup-team', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           company: companyInfo,
-          team: teamMembers
+          team: validMembers
         })
       });
 
