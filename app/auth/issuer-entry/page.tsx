@@ -61,7 +61,7 @@ function IssuerEntryContent() {
       }
 
       // Check if user has company
-      if (data.profile?.company_id) {
+      if (data.profile?.companyId) {
         router.push('/capitallab/collaborative/issuer')
       } else {
         setError('Your account is not associated with a company. Please use "Create Account" tab to set up your company.')
