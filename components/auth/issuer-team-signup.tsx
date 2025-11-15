@@ -642,11 +642,18 @@ export function IssuerTeamSignup({ onSuccess, onError, currentUser }: IssuerTeam
 
               {/* Team Summary */}
               <div>
-                <h4 className="font-medium mb-3">Team Members ({teamMembers.length})</h4>
+                <h4 className="font-medium mb-3">Team Members ({teamMembers.filter(m => m.email).length})</h4>
                 <div className="space-y-3">
-                  {teamMembers.map((member, index) => {
+                  {teamMembers.filter(m => m.email && m.email.trim() !== '').map((member, index) => {
                     const roleDefinition = ISSUER_ROLES[member.role];
                     const Icon = ROLE_ICONS[member.role];
+                    
+                    // Skip if role is not defined (safety check)
+                    if (!roleDefinition || !Icon) {
+                      console.warn('Unknown role:', member.role);
+                      return null;
+                    }
+                    
                     return (
                       <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
                         <div className="flex items-center space-x-3">
