@@ -23,107 +23,107 @@
 
 :root {
   /* African prosperity palette - emerald greens, terracotta, golden accents */
-  --background: oklch(0.98 0.01 85);
-  --foreground: oklch(0.15 0.02 60);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0.02 60);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0.02 60);
+  --background: 0 0% 100%;
+  --foreground: 222.2 84% 4.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 84% 4.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 84% 4.9%;
 
   /* Golden accent as primary */
-  --primary: oklch(0.75 0.15 85);
-  --primary-foreground: oklch(0.15 0.02 60);
+  --primary: 45 93% 47%;
+  --primary-foreground: 210 40% 98%;
 
   /* Emerald green as secondary */
-  --secondary: oklch(0.65 0.18 155);
-  --secondary-foreground: oklch(0.98 0.01 85);
+  --secondary: 142 76% 36%;
+  --secondary-foreground: 210 40% 98%;
 
-  --muted: oklch(0.95 0.01 85);
-  --muted-foreground: oklch(0.5 0.02 60);
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
 
   /* Terracotta accent */
-  --accent: oklch(0.62 0.15 35);
-  --accent-foreground: oklch(0.98 0.01 85);
+  --accent: 24 70% 50%;
+  --accent-foreground: 210 40% 98%;
 
-  --destructive: oklch(0.55 0.22 25);
-  --destructive-foreground: oklch(0.98 0.01 85);
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
 
-  --border: oklch(0.9 0.01 85);
-  --input: oklch(0.9 0.01 85);
-  --ring: oklch(0.75 0.15 85);
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 45 93% 47%;
 
   /* Chart colors - African sunset inspired */
-  --chart-1: oklch(0.75 0.15 85);
+  --chart-1: 45 93% 47%;
   /* Golden */
-  --chart-2: oklch(0.65 0.18 155);
+  --chart-2: 142 76% 36%;
   /* Emerald */
-  --chart-3: oklch(0.62 0.15 35);
+  --chart-3: 24 70% 50%;
   /* Terracotta */
-  --chart-4: oklch(0.7 0.2 45);
+  --chart-4: 32 95% 44%;
   /* Orange */
-  --chart-5: oklch(0.55 0.16 165);
+  --chart-5: 173 58% 39%;
   /* Teal */
 
   --radius: 0.75rem;
 
-  --sidebar: oklch(0.98 0.01 85);
-  --sidebar-foreground: oklch(0.15 0.02 60);
-  --sidebar-primary: oklch(0.75 0.15 85);
-  --sidebar-primary-foreground: oklch(0.15 0.02 60);
-  --sidebar-accent: oklch(0.95 0.01 85);
-  --sidebar-accent-foreground: oklch(0.15 0.02 60);
-  --sidebar-border: oklch(0.9 0.01 85);
-  --sidebar-ring: oklch(0.75 0.15 85);
+  --sidebar: 0 0% 100%;
+  --sidebar-foreground: 222.2 84% 4.9%;
+  --sidebar-primary: 45 93% 47%;
+  --sidebar-primary-foreground: 210 40% 98%;
+  --sidebar-accent: 210 40% 96.1%;
+  --sidebar-accent-foreground: 222.2 84% 4.9%;
+  --sidebar-border: 214.3 31.8% 91.4%;
+  --sidebar-ring: 45 93% 47%;
 
   /* Success color for gains */
-  --success: oklch(0.65 0.18 155);
-  --success-foreground: oklch(0.98 0.01 85);
+  --success: 142 76% 36%;
+  --success-foreground: 210 40% 98%;
 }
 
 .dark {
-  --background: oklch(0.12 0.02 60);
-  --foreground: oklch(0.98 0.01 85);
-  --card: oklch(0.15 0.02 60);
-  --card-foreground: oklch(0.98 0.01 85);
-  --popover: oklch(0.15 0.02 60);
-  --popover-foreground: oklch(0.98 0.01 85);
+  --background: 222.2 84% 4.9%;
+  --foreground: 210 40% 98%;
+  --card: 222.2 84% 4.9%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222.2 84% 4.9%;
+  --popover-foreground: 210 40% 98%;
 
-  --primary: oklch(0.8 0.15 85);
-  --primary-foreground: oklch(0.12 0.02 60);
+  --primary: 45 93% 47%;
+  --primary-foreground: 222.2 47.4% 11.2%;
 
-  --secondary: oklch(0.7 0.18 155);
-  --secondary-foreground: oklch(0.12 0.02 60);
+  --secondary: 142 76% 36%;
+  --secondary-foreground: 210 40% 98%;
 
-  --muted: oklch(0.2 0.02 60);
-  --muted-foreground: oklch(0.65 0.02 60);
+  --muted: 217.2 32.6% 17.5%;
+  --muted-foreground: 215 20.2% 65.1%;
 
-  --accent: oklch(0.65 0.15 35);
-  --accent-foreground: oklch(0.98 0.01 85);
+  --accent: 24 70% 50%;
+  --accent-foreground: 210 40% 98%;
 
-  --destructive: oklch(0.5 0.22 25);
-  --destructive-foreground: oklch(0.98 0.01 85);
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
 
-  --border: oklch(0.25 0.02 60);
-  --input: oklch(0.25 0.02 60);
-  --ring: oklch(0.8 0.15 85);
+  --border: 217.2 32.6% 17.5%;
+  --input: 217.2 32.6% 17.5%;
+  --ring: 45 93% 47%;
 
-  --chart-1: oklch(0.8 0.15 85);
-  --chart-2: oklch(0.7 0.18 155);
-  --chart-3: oklch(0.65 0.15 35);
-  --chart-4: oklch(0.75 0.2 45);
-  --chart-5: oklch(0.6 0.16 165);
+  --chart-1: 45 93% 47%;
+  --chart-2: 142 76% 36%;
+  --chart-3: 24 70% 50%;
+  --chart-4: 32 95% 44%;
+  --chart-5: 173 58% 39%;
 
-  --sidebar: oklch(0.15 0.02 60);
-  --sidebar-foreground: oklch(0.98 0.01 85);
-  --sidebar-primary: oklch(0.8 0.15 85);
-  --sidebar-primary-foreground: oklch(0.12 0.02 60);
-  --sidebar-accent: oklch(0.2 0.02 60);
-  --sidebar-accent-foreground: oklch(0.98 0.01 85);
-  --sidebar-border: oklch(0.25 0.02 60);
-  --sidebar-ring: oklch(0.8 0.15 85);
+  --sidebar: 222.2 84% 4.9%;
+  --sidebar-foreground: 210 40% 98%;
+  --sidebar-primary: 45 93% 47%;
+  --sidebar-primary-foreground: 222.2 47.4% 11.2%;
+  --sidebar-accent: 217.2 32.6% 17.5%;
+  --sidebar-accent-foreground: 210 40% 98%;
+  --sidebar-border: 217.2 32.6% 17.5%;
+  --sidebar-ring: 45 93% 47%;
 
-  --success: oklch(0.7 0.18 155);
-  --success-foreground: oklch(0.12 0.02 60);
+  --success: 142 76% 36%;
+  --success-foreground: 210 40% 98%;
 }
 
 /* Base styles without @apply */
