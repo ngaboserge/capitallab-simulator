@@ -22,108 +22,108 @@
 }
 
 :root {
-  /* African prosperity palette - emerald greens, terracotta, golden accents */
+  /* African prosperity palette - vibrant emerald greens, terracotta, golden accents */
   --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
+  --foreground: 240 10% 3.9%;
   --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
+  --card-foreground: 240 10% 3.9%;
   --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
+  --popover-foreground: 240 10% 3.9%;
 
-  /* Golden accent as primary */
-  --primary: 45 93% 47%;
-  --primary-foreground: 210 40% 98%;
+  /* Rich golden accent as primary */
+  --primary: 43 96% 56%;
+  --primary-foreground: 0 0% 100%;
 
-  /* Emerald green as secondary */
-  --secondary: 142 76% 36%;
-  --secondary-foreground: 210 40% 98%;
+  /* Vibrant emerald green as secondary */
+  --secondary: 142 71% 45%;
+  --secondary-foreground: 0 0% 100%;
 
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
+  --muted: 240 4.8% 95.9%;
+  --muted-foreground: 240 3.8% 46.1%;
 
-  /* Terracotta accent */
-  --accent: 24 70% 50%;
-  --accent-foreground: 210 40% 98%;
+  /* Warm terracotta accent */
+  --accent: 20 90% 48%;
+  --accent-foreground: 0 0% 100%;
 
   --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
+  --destructive-foreground: 0 0% 100%;
 
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 45 93% 47%;
+  --border: 240 5.9% 90%;
+  --input: 240 5.9% 90%;
+  --ring: 43 96% 56%;
 
   /* Chart colors - African sunset inspired */
-  --chart-1: 45 93% 47%;
-  /* Golden */
-  --chart-2: 142 76% 36%;
-  /* Emerald */
-  --chart-3: 24 70% 50%;
-  /* Terracotta */
-  --chart-4: 32 95% 44%;
-  /* Orange */
-  --chart-5: 173 58% 39%;
-  /* Teal */
+  --chart-1: 43 96% 56%;
+  /* Rich Golden */
+  --chart-2: 142 71% 45%;
+  /* Vibrant Emerald */
+  --chart-3: 20 90% 48%;
+  /* Warm Terracotta */
+  --chart-4: 32 98% 50%;
+  /* Bright Orange */
+  --chart-5: 173 80% 40%;
+  /* Deep Teal */
 
   --radius: 0.75rem;
 
   --sidebar: 0 0% 100%;
-  --sidebar-foreground: 222.2 84% 4.9%;
-  --sidebar-primary: 45 93% 47%;
-  --sidebar-primary-foreground: 210 40% 98%;
-  --sidebar-accent: 210 40% 96.1%;
-  --sidebar-accent-foreground: 222.2 84% 4.9%;
-  --sidebar-border: 214.3 31.8% 91.4%;
-  --sidebar-ring: 45 93% 47%;
+  --sidebar-foreground: 240 10% 3.9%;
+  --sidebar-primary: 43 96% 56%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 240 4.8% 95.9%;
+  --sidebar-accent-foreground: 240 10% 3.9%;
+  --sidebar-border: 240 5.9% 90%;
+  --sidebar-ring: 43 96% 56%;
 
   /* Success color for gains */
-  --success: 142 76% 36%;
-  --success-foreground: 210 40% 98%;
+  --success: 142 71% 45%;
+  --success-foreground: 0 0% 100%;
 }
 
 .dark {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
-  --card: 222.2 84% 4.9%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222.2 84% 4.9%;
-  --popover-foreground: 210 40% 98%;
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
 
-  --primary: 45 93% 47%;
-  --primary-foreground: 222.2 47.4% 11.2%;
+  --primary: 43 96% 56%;
+  --primary-foreground: 240 10% 3.9%;
 
-  --secondary: 142 76% 36%;
-  --secondary-foreground: 210 40% 98%;
+  --secondary: 142 71% 45%;
+  --secondary-foreground: 0 0% 98%;
 
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
 
-  --accent: 24 70% 50%;
-  --accent-foreground: 210 40% 98%;
+  --accent: 20 90% 48%;
+  --accent-foreground: 0 0% 98%;
 
   --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
+  --destructive-foreground: 0 0% 98%;
 
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 45 93% 47%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --ring: 43 96% 56%;
 
-  --chart-1: 45 93% 47%;
-  --chart-2: 142 76% 36%;
-  --chart-3: 24 70% 50%;
-  --chart-4: 32 95% 44%;
-  --chart-5: 173 58% 39%;
+  --chart-1: 43 96% 56%;
+  --chart-2: 142 71% 45%;
+  --chart-3: 20 90% 48%;
+  --chart-4: 32 98% 50%;
+  --chart-5: 173 80% 40%;
 
-  --sidebar: 222.2 84% 4.9%;
-  --sidebar-foreground: 210 40% 98%;
-  --sidebar-primary: 45 93% 47%;
-  --sidebar-primary-foreground: 222.2 47.4% 11.2%;
-  --sidebar-accent: 217.2 32.6% 17.5%;
-  --sidebar-accent-foreground: 210 40% 98%;
-  --sidebar-border: 217.2 32.6% 17.5%;
-  --sidebar-ring: 45 93% 47%;
+  --sidebar: 240 10% 3.9%;
+  --sidebar-foreground: 0 0% 98%;
+  --sidebar-primary: 43 96% 56%;
+  --sidebar-primary-foreground: 240 10% 3.9%;
+  --sidebar-accent: 240 3.7% 15.9%;
+  --sidebar-accent-foreground: 0 0% 98%;
+  --sidebar-border: 240 3.7% 15.9%;
+  --sidebar-ring: 43 96% 56%;
 
-  --success: 142 76% 36%;
-  --success-foreground: 210 40% 98%;
+  --success: 142 71% 45%;
+  --success-foreground: 0 0% 98%;
 }
 
 /* Base styles without @apply */
@@ -140,11 +140,11 @@ body {
 
 /* African sunset gradient backgrounds */
 .gradient-sunset {
-  background: linear-gradient(135deg, oklch(0.75 0.15 85) 0%, oklch(0.7 0.2 45) 50%, oklch(0.62 0.15 35) 100%);
+  background: linear-gradient(135deg, hsl(43 96% 56%) 0%, hsl(32 98% 50%) 50%, hsl(20 90% 48%) 100%);
 }
 
 .gradient-prosperity {
-  background: linear-gradient(135deg, oklch(0.65 0.18 155) 0%, oklch(0.6 0.16 165) 100%);
+  background: linear-gradient(135deg, hsl(142 71% 45%) 0%, hsl(173 80% 40%) 100%);
 }
 
 /* Smooth animations */
@@ -247,16 +247,16 @@ body {
 
   0%,
   100% {
-    box-shadow: 0 0 20px oklch(0.75 0.15 85 / 0.3);
+    box-shadow: 0 0 20px hsla(43, 96%, 56%, 0.3);
   }
 
   50% {
-    box-shadow: 0 0 40px oklch(0.75 0.15 85 / 0.6);
+    box-shadow: 0 0 40px hsla(43, 96%, 56%, 0.6);
   }
 }
 
 .animate-shimmer {
-  background: linear-gradient(90deg, transparent 0%, oklch(1 0 0 / 0.1) 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%);
   background-size: 1000px 100%;
   animation: shimmer 2s infinite;
 }
@@ -291,8 +291,8 @@ body {
   right: 0;
   bottom: 0;
   background-image:
-    repeating-linear-gradient(45deg, transparent, transparent 35px, oklch(0.75 0.15 85 / 0.03) 35px, oklch(0.75 0.15 85 / 0.03) 70px),
-    repeating-linear-gradient(-45deg, transparent, transparent 35px, oklch(0.65 0.18 155 / 0.03) 35px, oklch(0.65 0.18 155 / 0.03) 70px);
+    repeating-linear-gradient(45deg, transparent, transparent 35px, hsla(43, 96%, 56%, 0.03) 35px, hsla(43, 96%, 56%, 0.03) 70px),
+    repeating-linear-gradient(-45deg, transparent, transparent 35px, hsla(142, 71%, 45%, 0.03) 35px, hsla(142, 71%, 45%, 0.03) 70px);
   pointer-events: none;
 }
 
@@ -315,7 +315,7 @@ a,
 
 /* Enhanced gradient backgrounds with depth */
 .gradient-sunset-enhanced {
-  background: linear-gradient(135deg, oklch(0.75 0.15 85) 0%, oklch(0.72 0.18 65) 25%, oklch(0.7 0.2 45) 50%, oklch(0.65 0.17 30) 75%, oklch(0.62 0.15 35) 100%);
+  background: linear-gradient(135deg, hsl(43 96% 56%) 0%, hsl(38 97% 53%) 25%, hsl(32 98% 50%) 50%, hsl(26 94% 49%) 75%, hsl(20 90% 48%) 100%);
   position: relative;
 }
 
@@ -323,11 +323,11 @@ a,
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 30% 50%, oklch(1 0 0 / 0.1) 0%, transparent 50%);
+  background: radial-gradient(circle at 30% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
 }
 
 .gradient-prosperity-enhanced {
-  background: linear-gradient(135deg, oklch(0.65 0.18 155) 0%, oklch(0.63 0.17 160) 50%, oklch(0.6 0.16 165) 100%);
+  background: linear-gradient(135deg, hsl(142 71% 45%) 0%, hsl(158 76% 43%) 50%, hsl(173 80% 40%) 100%);
   position: relative;
 }
 
@@ -335,7 +335,7 @@ a,
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 70% 50%, oklch(1 0 0 / 0.1) 0%, transparent 50%);
+  background: radial-gradient(circle at 70% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
 }
 
 /* Micro-interaction for buttons */
@@ -352,7 +352,7 @@ a,
   width: 0;
   height: 0;
   border-radius: 50%;
-  background: oklch(1 0 0 / 0.2);
+  background: rgba(255, 255, 255, 0.2);
   transform: translate(-50%, -50%);
   transition: width 0.6s, height 0.6s;
 }
@@ -374,8 +374,8 @@ a,
   left: 50%;
   transform: translateX(-50%);
   padding: 0.5rem 0.75rem;
-  background: oklch(0.15 0.02 60);
-  color: oklch(0.98 0.01 85);
+  background: hsl(240 10% 3.9%);
+  color: hsl(0 0% 98%);
   border-radius: 0.5rem;
   font-size: 0.875rem;
   white-space: nowrap;
@@ -385,7 +385,7 @@ a,
 
 /* Additional utility classes for compatibility */
 .african-sunset {
-  background: linear-gradient(135deg, oklch(0.75 0.15 85) 0%, oklch(0.7 0.2 45) 25%, oklch(0.62 0.15 35) 50%, oklch(0.65 0.18 155) 75%, oklch(0.55 0.16 165) 100%);
+  background: linear-gradient(135deg, hsl(43 96% 56%) 0%, hsl(32 98% 50%) 25%, hsl(20 90% 48%) 50%, hsl(142 71% 45%) 75%, hsl(173 80% 40%) 100%);
 }
 
 .text-gradient {
