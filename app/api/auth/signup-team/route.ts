@@ -173,10 +173,13 @@ export async function POST(request: NextRequest) {
         let profileError
         
         if (existingUser) {
-          // For existing users, just update the company_id
+          // For existing users, update both company_id and role
           const { error } = await supabaseAdmin
             .from('profiles')
-            .update({ company_id: companyData.id })
+            .update({ 
+              company_id: companyData.id,
+              role: dbRole
+            })
             .eq('id', userId)
           profileError = error
         } else {
