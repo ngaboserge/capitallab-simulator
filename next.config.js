@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   serverExternalPackages: ['mysql2'],
+  transpilePackages: ['lucide-react'],
   images: {
     domains: ['localhost'],
     remotePatterns: [
