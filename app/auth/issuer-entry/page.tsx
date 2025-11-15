@@ -312,7 +312,7 @@ function IssuerEntryContent() {
                   <div className="space-y-4">
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                       <p className="text-sm text-blue-800">
-                        Set up your company and create your founder account
+                        <strong>Step 1:</strong> Set up your company and create your CEO account. You can add team members later from your dashboard.
                       </p>
                     </div>
 
@@ -381,15 +381,25 @@ function IssuerEntryContent() {
                       />
                     </div>
 
-                    <Button 
-                      type="button" 
-                      className="w-full" 
-                      onClick={() => setSignupStep(2)}
-                      disabled={!companyData.companyName || !companyData.founderName || !companyData.founderEmail || !companyData.founderPassword}
-                    >
-                      Next: Add Team Members
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
+                    <div className="space-y-2">
+                      <Button 
+                        type="submit" 
+                        className="w-full" 
+                        disabled={loading || !companyData.companyName || !companyData.founderName || !companyData.founderEmail || !companyData.founderPassword}
+                      >
+                        {loading ? 'Creating Account...' : 'Create Account'}
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant="outline"
+                        className="w-full" 
+                        onClick={() => setSignupStep(2)}
+                        disabled={!companyData.companyName || !companyData.founderName || !companyData.founderEmail || !companyData.founderPassword}
+                      >
+                        Add Team Members First (Optional)
+                        <ArrowRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    </div>
                   </div>
                 )}
 
@@ -398,7 +408,7 @@ function IssuerEntryContent() {
                   <div className="space-y-4">
                     <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                       <p className="text-sm text-green-800">
-                        <strong>Add your team members</strong> (optional). Each role will handle specific sections of the IPO application.
+                        <strong>Optional:</strong> Add team members now, or skip and add them later from your dashboard. Each role will handle specific sections of the IPO application.
                       </p>
                     </div>
 
@@ -513,22 +523,22 @@ function IssuerEntryContent() {
                       </div>
                     )}
 
-                    <div className="flex gap-2">
+                    <div className="space-y-2">
+                      <Button 
+                        type="submit" 
+                        disabled={loading}
+                        className="w-full"
+                      >
+                        {loading ? 'Creating...' : teamMembers.length > 0 ? 'Create Company & Team' : 'Create Company (CEO Only)'}
+                      </Button>
                       <Button 
                         type="button" 
                         variant="outline"
                         onClick={() => setSignupStep(1)}
-                        className="flex-1"
+                        className="w-full"
                       >
                         <ArrowLeft className="w-4 h-4 mr-2" />
-                        Back
-                      </Button>
-                      <Button 
-                        type="submit" 
-                        disabled={loading}
-                        className="flex-1"
-                      >
-                        {loading ? 'Creating...' : 'Create Company & Team'}
+                        Back to Company Info
                       </Button>
                     </div>
                   </div>

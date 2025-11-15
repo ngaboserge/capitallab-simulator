@@ -28,10 +28,17 @@ export default function SignupPage() {
     setLoading(true)
 
     try {
+      // For ISSUER_CEO, set role as ISSUER
+      const signupData = {
+        ...formData,
+        role: formData.role === 'ISSUER_CEO' ? 'ISSUER' : formData.role,
+        companyRole: formData.role === 'ISSUER_CEO' ? 'CEO' : undefined
+      }
+
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(signupData)
       })
 
       const data = await response.json()
@@ -40,8 +47,12 @@ export default function SignupPage() {
         throw new Error(data.error || 'Signup failed')
       }
 
-      // Success - redirect to login
-      router.push('/auth/login?message=Account created! Please log in.')
+      // Success - redirect to login with appropriate message
+      if (formData.role === 'ISSUER_CEO') {
+        router.push('/auth/login?message=Account created! Log in to add team members and start your application.')
+      } else {
+        router.push('/auth/login?message=Account created! Please log in.')
+      }
     } catch (err: any) {
       setError(err.message)
     } finally {
