@@ -74,7 +74,7 @@ export function IssuerTeamSignup({ onSuccess, onError, currentUser }: IssuerTeam
       email: currentUser.email,
       username: currentUser.email.split('@')[0],
       password: '********', // Placeholder since user is already logged in
-      role: currentUser.role
+      role: 'CEO' as IssuerRole // Always set as CEO for the logged-in user
     }] : []
   );
 
@@ -88,7 +88,7 @@ export function IssuerTeamSignup({ onSuccess, onError, currentUser }: IssuerTeam
         email: currentUser.email,
         username: currentUser.email.split('@')[0],
         password: '********',
-        role: currentUser.role
+        role: 'CEO' as IssuerRole // Always set as CEO for the logged-in user
       }]);
     }
   }, [currentUser, teamMembers.length]);

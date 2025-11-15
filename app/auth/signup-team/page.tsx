@@ -24,7 +24,10 @@ export default function TeamSignupPage() {
   const currentUser = profile ? {
     fullName: profile.full_name || profile.email?.split('@')[0] || '',
     email: profile.email || '',
-    role: (profile.company_role?.replace('ISSUER_', '') || profile.role?.replace('ISSUER_', '') || 'CEO') as any
+    // Ensure role is one of the valid IssuerRole types (CEO, CFO, LEGAL_ADVISOR, SECRETARY)
+    role: (profile.company_role?.replace('ISSUER_', '') || 
+           (profile.role === 'ISSUER' ? 'CEO' : profile.role?.replace('ISSUER_', '')) || 
+           'CEO') as any
   } : null;
 
   return (
