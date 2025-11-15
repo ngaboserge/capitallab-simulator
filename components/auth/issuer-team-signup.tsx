@@ -142,15 +142,35 @@ export function IssuerTeamSignup({ onSuccess, onError, currentUser }: IssuerTeam
         const isCEO = member.role === 'CEO';
         const isExistingCEO = isCEO && currentUser && member.email === currentUser.email;
         
-        if (!member.fullName || !member.email || !member.username) {
-          setError('All team member fields are required');
+        console.log('Validating member:', { 
+          role: member.role, 
+          isCEO, 
+          isExistingCEO,
+          hasFullName: !!member.fullName,
+          hasEmail: !!member.email,
+          hasUsername: !!member.username,
+          hasPassword: !!member.password
+        });
+        
+        if (!member.fullName || !member.email) {
+          setError(`All team member fields are required (missing ${!member.fullName ? 'name' : 'email'})`);
+          return false;
+        }
+        
+        // Auto-generate username if missing
+        if (!member.username && member.email) {
+          member.username = member.email.split('@')[0];
+        }
+        
+        if (!member.username) {
+          setError('Username is required for all team members');
           return false;
         }
         
         // Only validate password for new team members (not existing CEO)
         if (!isExistingCEO) {
           if (!member.password) {
-            setError('All team member fields are required');
+            setError('Password is required for new team members');
             return false;
           }
           if (member.password.length < 8) {
