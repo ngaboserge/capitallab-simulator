@@ -30,6 +30,8 @@ export interface Database {
           company_role: string | null
           avatar_url: string | null
           phone: string | null
+          employee_id: string | null
+          department: string | null
           is_active: boolean
           last_login: string | null
           created_at: string
@@ -45,6 +47,8 @@ export interface Database {
           company_role?: string | null
           avatar_url?: string | null
           phone?: string | null
+          employee_id?: string | null
+          department?: string | null
           is_active?: boolean
           last_login?: string | null
           created_at?: string
@@ -60,6 +64,8 @@ export interface Database {
           company_role?: string | null
           avatar_url?: string | null
           phone?: string | null
+          employee_id?: string | null
+          department?: string | null
           is_active?: boolean
           last_login?: string | null
           created_at?: string

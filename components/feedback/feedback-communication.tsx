@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { useFeedbackLocalStorage, FeedbackItem } from '@/lib/api/use-feedback-localstorage';
+import { useFeedback, FeedbackItem } from '@/lib/api/use-feedback';
 import { useSimpleAuth } from '@/lib/auth/simple-auth-context';
 import { FeedbackDocumentUpload } from './feedback-document-upload';
 import { MessageSquare, Send, CheckCircle, Clock, AlertCircle, Upload } from 'lucide-react';
@@ -18,12 +18,7 @@ interface FeedbackCommunicationProps {
 
 export function FeedbackCommunication({ applicationId, isIBAdvisor = false }: FeedbackCommunicationProps) {
   const { profile } = useSimpleAuth();
-  const { feedback, loading, updateFeedback, addComment, getComments, refresh } = useFeedbackLocalStorage(
-    applicationId,
-    profile?.id,
-    profile?.full_name || profile?.username,
-    profile?.role
-  );
+  const { feedback, loading, updateFeedback, addComment, getComments, refresh } = useFeedback(applicationId);
   const [expandedFeedback, setExpandedFeedback] = useState<string | null>(null);
   const [expandedUpload, setExpandedUpload] = useState<string | null>(null);
   const [comments, setComments] = useState<Record<string, any[]>>({});

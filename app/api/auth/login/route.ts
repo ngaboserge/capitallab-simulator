@@ -4,92 +4,66 @@ import { createTypedServerClient } from '@/lib/supabase/typed-client'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { username, password } = body
+    const { email, password } = body
 
     // Validate required fields
-    if (!username || !password) {
+    if (!email || !password) {
       return NextResponse.json(
-        { error: 'Username and password are required' },
+        { error: 'Email and password are required' },
         { status: 400 }
       )
     }
 
     const supabase = await createTypedServerClient()
 
-    // Find user by username OR email
-    console.log('Looking up profile for username/email:', username)
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('email, id, username, full_name, role, company_id, company_role, is_active')
-      .or(`username.eq.${username},email.eq.${username}`)
-      .single()
-
-    if (profileError) {
-      console.error('Profile lookup error:', profileError)
-    }
-
-    if (profileError || !profile) {
-      console.log('Profile not found for username/email:', username)
-      return NextResponse.json(
-        { error: 'Invalid username/email or password' },
-        { status: 401 }
-      )
-    }
-
-    console.log('Profile found:', profile.username, profile.email)
-
-    // Check if user is active
-    if (!profile.is_active) {
-      return NextResponse.json(
-        { error: 'Account is inactive. Please contact support.' },
-        { status: 403 }
-      )
-    }
-
-    // Sign in with email and password
-    console.log('Attempting Supabase auth with email:', profile.email)
+    // Authenticate with Supabase
+    console.log('Attempting login for:', email)
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email: profile.email,
+      email,
       password
     })
 
-    if (authError) {
-      console.error('Supabase auth error:', authError)
+    if (authError || !authData.user) {
+      console.error('Auth error:', authError)
       return NextResponse.json(
-        { error: 'Invalid username or password' },
+        { error: 'Invalid email or password' },
         { status: 401 }
       )
     }
 
-    console.log('Auth successful!')
+    // Get profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('email, id, full_name, role, company_id, is_ib_advisor')
+      .eq('id', authData.user.id)
+      .single()
 
-    if (!authData.session) {
+    if (profileError || !profile) {
+      console.error('Profile lookup error:', profileError)
       return NextResponse.json(
-        { error: 'Failed to create session' },
-        { status: 500 }
+        { error: 'Profile not found' },
+        { status: 404 }
       )
     }
 
-    // Update last login timestamp
-    await supabase
-      .from('profiles')
-      .update({ last_login: new Date().toISOString() })
-      .eq('id', profile.id)
+    console.log('Login successful for:', profile.email)
+
+    // Extract company role from database role (e.g., 'ISSUER_CEO' -> 'CEO')
+    const companyRole = profile.role?.startsWith('ISSUER_') 
+      ? profile.role.replace('ISSUER_', '') 
+      : null
 
     return NextResponse.json({
       success: true,
-      user: {
+      user: authData.user,
+      profile: {
         id: profile.id,
         email: profile.email,
-        username: profile.username,
         fullName: profile.full_name,
         role: profile.role,
-        companyId: profile.company_id
-      },
-      session: {
-        accessToken: authData.session.access_token,
-        refreshToken: authData.session.refresh_token,
-        expiresAt: authData.session.expires_at
+        companyId: profile.company_id,
+        companyRole: companyRole,
+        isIbAdvisor: profile.is_ib_advisor
       }
     })
   } catch (error) {

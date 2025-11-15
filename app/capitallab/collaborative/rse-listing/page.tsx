@@ -65,128 +65,40 @@ function SHORAListingPageContent() {
 
   useEffect(() => {
     loadApplications();
-    
-    // Reload data when window regains focus (e.g., after login)
-    const handleFocus = () => {
-      loadApplications();
-    };
-    
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
   }, []);
 
-  const loadApplications = () => {
+  const loadApplications = async () => {
     try {
       setLoading(true);
       
-      // Load CMA-approved applications from localStorage
-      const allKeys = Object.keys(localStorage);
-      const cmaSubmissionKeys = allKeys.filter(key => key.startsWith('cma_submission_'));
-      const listingKeys = allKeys.filter(key => key.startsWith('listing_'));
+      // Load listings from Supabase
+      const response = await fetch('/api/shora/listings');
       
-      const loadedApplications: ListingApplication[] = [];
-      const processedIds = new Set<string>();
-
-      // First, load all CMA-approved applications
-      cmaSubmissionKeys.forEach((key, index) => {
-        try {
-          const submissionData = localStorage.getItem(key);
-          if (submissionData) {
-            const submission = JSON.parse(submissionData);
-            
-            // Only include CMA-approved applications
-            if (submission.status === 'APPROVED') {
-              // Check if already listed
-              const listingKey = `listing_${key}`;
-              const listingData = localStorage.getItem(listingKey);
-              const listing = listingData ? JSON.parse(listingData) : null;
-              
-              const application: ListingApplication = {
-                id: key,
-                company_name: submission.companyName || 'Unknown Company',
-                application_number: `CMA-2024-${String(index + 1).padStart(3, '0')}`,
-                cma_approval_date: submission.cmaDecisionDate || new Date().toISOString(),
-                target_amount: submission.dealStructure?.totalAmount || 0,
-                shares_offered: submission.dealStructure?.totalShares || 0,
-                offer_price: submission.dealStructure?.offerPrice || 0,
-                listing_status: listing?.status || 'PENDING_LISTING',
-                ticker_symbol: listing?.tickerSymbol,
-                isin_code: listing?.isinCode,
-                listing_date: listing?.listingDate,
-                sector: listing?.sector || 'Technology',
-                market_segment: listing?.marketSegment || 'MAIN_BOARD'
-              };
-              
-              console.log(`Loaded application ${submission.companyName}:`, {
-                listingKey,
-                hasListing: !!listing,
-                status: listing?.status,
-                listing_status: application.listing_status
-              });
-              
-              loadedApplications.push(application);
-              processedIds.add(key);
-            }
-          }
-        } catch (e) {
-          console.error(`Error loading ${key}:`, e);
-        }
-      });
-
-      // Also load any listings that don't have a CMA submission (e.g., demo data)
-      listingKeys.forEach((listingKey) => {
-        try {
-          const applicationId = listingKey.replace('listing_', '');
-          
-          // Skip if already processed
-          if (processedIds.has(applicationId)) {
-            return;
-          }
-          
-          const listingData = localStorage.getItem(listingKey);
-          if (listingData) {
-            const listing = JSON.parse(listingData);
-            
-            const application: ListingApplication = {
-              id: applicationId,
-              company_name: listing.companyName || 'Unknown Company',
-              application_number: `DEMO-${applicationId}`,
-              cma_approval_date: listing.approvalDate || new Date().toISOString(),
-              target_amount: listing.marketCap || 0,
-              shares_offered: listing.sharesOffered || 0,
-              offer_price: listing.openingPrice || 0,
-              listing_status: listing.status || 'PENDING_LISTING',
-              ticker_symbol: listing.tickerSymbol,
-              isin_code: listing.isinCode,
-              listing_date: listing.listingDate,
-              sector: listing.sector || 'Technology',
-              market_segment: listing.marketSegment || 'MAIN_BOARD'
-            };
-            
-            console.log(`Loaded listing-only application ${listing.companyName}:`, {
-              listingKey,
-              status: listing.status,
-              listing_status: application.listing_status
-            });
-            
-            loadedApplications.push(application);
-            processedIds.add(applicationId);
-          }
-        } catch (e) {
-          console.error(`Error loading ${listingKey}:`, e);
-        }
-      });
-
-      console.log('📊 Loaded applications summary:', {
-        total: loadedApplications.length,
-        pending: loadedApplications.filter(a => a.listing_status === 'PENDING_LISTING').length,
-        approved: loadedApplications.filter(a => a.listing_status === 'LISTING_APPROVED').length,
-        listed: loadedApplications.filter(a => a.listing_status === 'LISTED').length
-      });
-
-      // Only show real CMA-approved applications (no demo data)
-      console.log('✅ Setting applications:', loadedApplications);
-      setApplications(loadedApplications);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Loaded', data.listings?.length || 0, 'listings from Supabase');
+        
+        const formattedListings: ListingApplication[] = (data.listings || []).map((listing: any) => ({
+          id: listing.id,
+          company_name: listing.company_name || listing.companies?.legal_name,
+          ticker_symbol: listing.ticker_symbol,
+          application_number: listing.ipo_applications?.application_number || 'N/A',
+          cma_approval_date: listing.approved_at || listing.created_at,
+          target_amount: listing.total_value || 0,
+          shares_offered: listing.shares_offered || 0,
+          offer_price: listing.offer_price,
+          listing_status: listing.listing_status,
+          listing_date: listing.listing_date,
+          isin_code: listing.isin_code,
+          sector: listing.sector,
+          market_segment: listing.market_segment
+        }));
+        
+        setApplications(formattedListings);
+      } else {
+        console.error('Failed to load listings');
+        setApplications([]);
+      }
     } catch (error) {
       console.error('Error loading applications:', error);
     } finally {
@@ -214,51 +126,43 @@ function SHORAListingPageContent() {
     return `RW${randomPart}`;
   };
 
-  const handleApproveListing = () => {
-    console.log('🔵 handleApproveListing called', { 
-      selectedApplication, 
-      tickerSymbol, 
-      isinCode, 
-      listingDate, 
-      openingPrice 
-    });
-    
+  const handleApproveListing = async () => {
     if (!selectedApplication) {
-      console.log('❌ No selected application');
       return;
     }
     
     if (!tickerSymbol || !isinCode || !listingDate || !openingPrice) {
-      console.log('❌ Missing required fields');
       alert('Please fill in all required fields');
       return;
     }
 
     try {
-      // Create listing record
-      const listingKey = `listing_${selectedApplication.id}`;
-      const listingData = {
-        applicationId: selectedApplication.id,
-        companyName: selectedApplication.company_name,
-        tickerSymbol: tickerSymbol.toUpperCase(),
-        isinCode: isinCode.toUpperCase(),
-        listingDate: listingDate,
-        openingPrice: parseFloat(openingPrice),
-        sharesOffered: selectedApplication.shares_offered,
-        marketCap: selectedApplication.shares_offered * parseFloat(openingPrice),
-        sector: selectedApplication.sector,
-        marketSegment: marketSegment,
-        status: 'LISTING_APPROVED',
-        approvalDate: new Date().toISOString(),
-        notes: listingNotes
-      };
+      setLoading(true);
       
-      localStorage.setItem(listingKey, JSON.stringify(listingData));
-      console.log('✅ Saved listing approval:', { listingKey, status: listingData.status, listingData });
+      // Update listing in Supabase
+      const response = await fetch(`/api/shora/listings/${selectedApplication.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ticker_symbol: tickerSymbol.toUpperCase(),
+          isin_code: isinCode.toUpperCase(),
+          listing_date: listingDate,
+          offer_price: parseFloat(openingPrice),
+          market_segment: marketSegment,
+          listing_status: 'LISTING_APPROVED',
+          trading_status: 'NOT_LISTED',
+          sector: selectedApplication.sector
+        })
+      });
       
-      // Verify it was saved
-      const savedData = localStorage.getItem(listingKey);
-      console.log('✅ Verified saved data:', savedData ? JSON.parse(savedData) : 'NOT FOUND');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to approve listing');
+      }
+      
+      console.log('✅ Listing approved in Supabase');
       
       // Reset form
       setTickerSymbol('');
@@ -268,43 +172,61 @@ function SHORAListingPageContent() {
       setListingNotes('');
       setSelectedApplication(null);
       
-      console.log('🔄 Calling loadApplications...');
-      // Reload applications from localStorage to update the dashboard
-      loadApplications();
+      // Reload listings
+      await loadApplications();
       
-      console.log('🔄 Switching to approved tab...');
-      // Switch to the "Listing Approved" tab to show the result
+      // Switch to approved tab
       setActiveTab('approved');
       
-      console.log('✅ All done, showing alert');
       alert(`✅ Listing Approved!\n\nTicker: ${tickerSymbol.toUpperCase()}\nISIN: ${isinCode.toUpperCase()}\nListing Date: ${listingDate}`);
     } catch (error) {
       console.error('Error approving listing:', error);
-      alert('Error approving listing');
+      alert(`Error approving listing: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleMarkAsListed = (application: ListingApplication) => {
+  const handleMarkAsListed = async (application: ListingApplication) => {
+    if (!confirm(`Mark ${application.company_name} as LISTED and begin trading?`)) {
+      return;
+    }
+
     try {
-      const listingKey = `listing_${application.id}`;
-      const listingData = localStorage.getItem(listingKey);
+      setLoading(true);
       
-      if (listingData) {
-        const listing = JSON.parse(listingData);
-        listing.status = 'LISTED';
-        listing.listedDate = new Date().toISOString();
-        localStorage.setItem(listingKey, JSON.stringify(listing));
-        
-        // Reload applications from localStorage to update the dashboard
-        loadApplications();
-        
-        // Switch to the "Listed Companies" tab to show the result
-        setActiveTab('listed');
-        
-        alert(`🎉 ${application.company_name} is now LISTED on SHORA Exchange!\n\nTrading begins: ${application.listing_date}`);
+      // Update listing status to LISTED in Supabase
+      const response = await fetch(`/api/shora/listings/${application.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          listing_status: 'LISTED',
+          trading_status: 'ACTIVE',
+          listing_date: application.listing_date || new Date().toISOString()
+        })
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to mark as listed');
       }
+      
+      console.log('✅ Marked as LISTED in Supabase');
+      
+      // Reload listings
+      await loadApplications();
+      
+      // Switch to listed tab
+      setActiveTab('listed');
+      
+      alert(`🎉 ${application.company_name} is now LISTED on SHORA Exchange!\n\nTrading begins: ${application.listing_date}`);
     } catch (error) {
       console.error('Error marking as listed:', error);
+      alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -349,12 +271,20 @@ function SHORAListingPageContent() {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Link href="/capitallab/collaborative">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Hub
-                </Button>
-              </Link>
+              <div className="flex items-center space-x-2">
+                <Link href="/capitallab/collaborative">
+                  <Button variant="ghost" size="sm">
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Hub
+                  </Button>
+                </Link>
+                <span className="text-gray-300">|</span>
+                <Link href="/shora-market">
+                  <Button variant="ghost" size="sm" className="text-purple-600 hover:text-purple-700">
+                    View Market
+                  </Button>
+                </Link>
+              </div>
               <div className="flex items-center space-x-3">
                 <div className="p-2 bg-purple-100 rounded-lg">
                   <Award className="h-6 w-6 text-purple-600" />

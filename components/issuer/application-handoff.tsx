@@ -246,41 +246,79 @@ export function ApplicationHandoff({ selectedAdvisor, companyName, onHandoff }: 
 
       console.log('Total sections collected:', Object.keys(applicationData.sections).length);
 
-      // Store the transfer in localStorage for the IB Advisor to access
-      const transferKey = `ib_transfer_${selectedAdvisor.id}_${Date.now()}`;
-      localStorage.setItem(transferKey, JSON.stringify(applicationData));
+      // NEW: Assign application to IB Advisor in Supabase
+      // Check if this is a real UUID (not a mock or localStorage ID)
+      const isRealUUID = foundApplicationId && 
+                        !foundApplicationId.startsWith('mock-') && 
+                        !foundApplicationId.startsWith('demo-') &&
+                        foundApplicationId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
       
-      // Also store a reference to this transfer for the IB Advisor
-      const ibTransfersKey = `ib_transfers_${selectedAdvisor.id}`;
-      const existingTransfers = JSON.parse(localStorage.getItem(ibTransfersKey) || '[]');
-      existingTransfers.push({
-        transferKey,
-        companyName,
-        transferDate: applicationData.metadata.transferDate,
-        sectionsCount: Object.keys(applicationData.sections).length
-      });
-      localStorage.setItem(ibTransfersKey, JSON.stringify(existingTransfers));
+      console.log('Transfer check:', { foundApplicationId, isRealUUID });
+      
+      if (isRealUUID) {
+        // This is a real Supabase application ID - assign it in the database
+        console.log('✅ Assigning real Supabase application to IB Advisor...');
+        const assignResponse = await fetch('/api/ib-advisors/applications', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            applicationId: foundApplicationId,
+            ibAdvisorId: selectedAdvisor.id
+          })
+        });
 
-      // Transfer data to IB Advisor (for logging/notification purposes)
-      const response = await fetch('/api/transfer-to-ib', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          ibAdvisorId: selectedAdvisor.id,
-          applicationData,
+        if (!assignResponse.ok) {
+          const errorData = await assignResponse.json();
+          console.error('Failed to assign application:', errorData);
+          throw new Error('Failed to assign application to IB Advisor in database');
+        }
+
+        console.log('✅ Application assigned to IB Advisor in Supabase successfully!');
+        setTransferComplete(true);
+        setTimeout(() => {
+          onHandoff();
+        }, 2000);
+        return; // Exit early - no need for localStorage
+      } else {
+        // Fallback to localStorage for mock/demo data
+        // Store the transfer in localStorage for the IB Advisor to access
+        const transferKey = `ib_transfer_${selectedAdvisor.id}_${Date.now()}`;
+        localStorage.setItem(transferKey, JSON.stringify(applicationData));
+        
+        // Also store a reference to this transfer for the IB Advisor
+        const ibTransfersKey = `ib_transfers_${selectedAdvisor.id}`;
+        const existingTransfers = JSON.parse(localStorage.getItem(ibTransfersKey) || '[]');
+        existingTransfers.push({
+          transferKey,
           companyName,
-          transferKey
-        })
-      });
+          transferDate: applicationData.metadata.transferDate,
+          sectionsCount: Object.keys(applicationData.sections).length
+        });
+        localStorage.setItem(ibTransfersKey, JSON.stringify(existingTransfers));
 
-      if (!response.ok) {
-        console.warn('Transfer API call failed, but localStorage transfer succeeded');
+        // Transfer data to IB Advisor (for logging/notification purposes)
+        const response = await fetch('/api/transfer-to-ib', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            ibAdvisorId: selectedAdvisor.id,
+            applicationData,
+            companyName,
+            transferKey
+          })
+        });
+
+        if (!response.ok) {
+          console.warn('Transfer API call failed, but localStorage transfer succeeded');
+        }
+
+        const result = await response.json();
+        console.log('Transfer successful:', result);
       }
-
-      const result = await response.json();
-      console.log('Transfer successful:', result);
       
       setTransferComplete(true);
       

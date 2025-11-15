@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { SimpleProtectedRoute } from '@/lib/auth/simple-protected-route';
 import { useSimpleAuth } from '@/lib/auth/simple-auth-context';
-import { useMockSectionData, useMockCompleteSection } from '@/lib/api/use-mock-sections';
+import { useSectionData, useCompleteSection } from '@/lib/api/use-sections';
 import { ArrowLeft, Save, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 
@@ -103,16 +103,71 @@ function SectionPageContent() {
   const sectionNumber = parseInt(params.sectionId as string);
   const section = SECTIONS[sectionNumber];
 
-  // Get the user's application ID (for now, we'll use a mock one)
+  // Get the user's real application ID from database
   useEffect(() => {
-    // In a real app, you'd get this from the user's profile or context
-    // For now, let's use a mock application ID
-    if (profile?.company_id) {
-      setApplicationId('mock-app-id-' + profile.company_id);
-    }
+    const loadApplication = async () => {
+      if (!profile?.company_id) return;
+      
+      try {
+        const response = await fetch(`/api/cma/applications?company_id=${profile.company_id}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.applications && data.applications.length > 0) {
+            setApplicationId(data.applications[0].id);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading application:', error);
+      }
+    };
+    
+    loadApplication();
   }, [profile]);
 
-  // Use the mock section data hook for development (with proper persistence)
+  // Get section ID from application and section number
+  const [sectionId, setSectionId] = useState<string | null>(null);
+  
+  // Load section ID when application is ready
+  useEffect(() => {
+    const loadSectionId = async () => {
+      if (!applicationId) return;
+      
+      try {
+        // Fetch the section by application ID and section number
+        console.log('Fetching sections for application:', applicationId);
+        const response = await fetch(`/api/cma/applications/${applicationId}/sections`);
+        console.log('Sections API response status:', response.status);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Sections API response data:', data);
+          
+          // The API returns { sections: [...] } not just an array
+          const sections = data.sections || data;
+          console.log('Sections array:', sections);
+          
+          const targetSection = sections.find((s: any) => s.section_number === sectionNumber);
+          console.log('Target section for number', sectionNumber, ':', targetSection);
+          
+          if (targetSection) {
+            console.log('Setting section ID:', targetSection.id);
+            setSectionId(targetSection.id);
+          } else {
+            console.error('Section not found for section number:', sectionNumber);
+          }
+        } else {
+          const errorText = await response.text();
+          console.error('Failed to fetch sections:', response.status, errorText);
+        }
+      } catch (error) {
+        console.error('Error loading section ID:', error);
+      }
+    };
+    
+    loadSectionId();
+  }, [applicationId, sectionNumber]);
+
+  // Use the real Supabase section data hook
   const { 
     section: sectionData, 
     loading, 
@@ -122,14 +177,43 @@ function SectionPageContent() {
     lastSaved,
     updateSection,
     updateField 
-  } = useMockSectionData(applicationId ? `${applicationId}-section-${sectionNumber}` : null);
+  } = useSectionData(sectionId);
 
-  // Use the mock complete section hook
+  // Create a debounced version of updateSection
+  const [localData, setLocalData] = useState<any>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout>();
+
+  // Update local data immediately for responsive UI
+  useEffect(() => {
+    if (sectionData?.data) {
+      setLocalData(sectionData.data);
+    }
+  }, [sectionData?.data]);
+
+  const debouncedUpdateSection = useCallback((newData: any) => {
+    // Update local state immediately for responsive typing
+    setLocalData(newData);
+
+    // Clear existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Set new timer to save after 1 second of no changes
+    debounceTimerRef.current = setTimeout(() => {
+      updateSection({
+        data: newData,
+        status: 'IN_PROGRESS'
+      });
+    }, 1000);
+  }, [updateSection]);
+
+  // Use the real complete section hook
   const { 
     completeSection, 
     completing, 
     error: completeError 
-  } = useMockCompleteSection(applicationId ? `${applicationId}-section-${sectionNumber}` : null);
+  } = useCompleteSection(sectionId);
 
   const handleSave = async (data: any) => {
     try {
@@ -238,19 +322,27 @@ function SectionPageContent() {
   };
 
   return (
-    <SimpleProtectedRoute allowedRoles={['ISSUER']}>
+    <SimpleProtectedRoute allowedRoles={['ISSUER', 'ISSUER_CEO', 'ISSUER_CFO', 'ISSUER_SECRETARY', 'ISSUER_LEGAL_ADVISOR']}>
       <div className="min-h-screen bg-background">
         {/* Header */}
         <div className="border-b bg-white">
           <div className="max-w-7xl mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <Link href="/capitallab/collaborative/issuer">
-                  <Button variant="ghost" size="sm">
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back to Dashboard
-                  </Button>
-                </Link>
+                <div className="flex items-center space-x-2">
+                  <Link href="/capitallab/collaborative/issuer">
+                    <Button variant="ghost" size="sm">
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      Back to Dashboard
+                    </Button>
+                  </Link>
+                  <span className="text-gray-300">|</span>
+                  <Link href="/capitallab/collaborative">
+                    <Button variant="ghost" size="sm">
+                      Back to Hub
+                    </Button>
+                  </Link>
+                </div>
                 <div>
                   <div className="flex items-center space-x-3">
                     <h1 className="text-2xl font-bold text-gray-900">
@@ -314,28 +406,31 @@ function SectionPageContent() {
         <div className="max-w-7xl mx-auto px-6 py-6">
           {/* Debug Info for Section Page */}
           <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded">
-            <h4 className="font-semibold mb-2">Section Page Debug (Backend Integration):</h4>
+            <h4 className="font-semibold mb-2">Section Page Debug (Supabase Integration):</h4>
             <div className="text-xs space-y-2">
-              <div><strong>Section ID:</strong> {applicationId ? `${applicationId}-section-${sectionNumber}` : 'Not loaded'}</div>
+              <div><strong>Company ID:</strong> {profile?.company_id || 'Not loaded'}</div>
+              <div><strong>Application ID:</strong> {applicationId || 'Loading...'}</div>
+              <div><strong>Section Number:</strong> {sectionNumber}</div>
+              <div><strong>Section ID (DB):</strong> {sectionId || 'Loading...'}</div>
               <div><strong>Status:</strong> {currentStatus}</div>
               <div><strong>Completion:</strong> {sectionData?.completion_percentage || 0}%</div>
               <div><strong>Last Updated:</strong> {sectionData?.updated_at || 'Never'}</div>
+              <div><strong>Loading:</strong> {loading ? 'Yes' : 'No'}</div>
+              <div><strong>Error:</strong> {error || 'None'}</div>
+              <div><strong>Data Keys:</strong> {Object.keys(sectionData?.data || {}).join(', ') || 'Empty'}</div>
               <div><strong>Data:</strong></div>
-              <pre className="overflow-auto max-h-32">
+              <pre className="overflow-auto max-h-32 bg-white p-2 rounded">
                 {JSON.stringify(sectionData?.data || {}, null, 2)}
               </pre>
             </div>
           </div>
           
           <SectionComponent
-            data={sectionData?.data || {}}
+            data={localData || sectionData?.data || {}}
             onDataChange={(newData: any) => {
               console.log('Section page onDataChange called with:', newData);
               // Auto-save on data change with debounce
-              updateSection({
-                data: newData,
-                status: 'IN_PROGRESS'
-              });
+              debouncedUpdateSection(newData);
             }}
             onSectionComplete={(isComplete: boolean) => {
               if (isComplete) {

@@ -18,7 +18,8 @@ import {
   Minus,
   RefreshCw,
   Building2,
-  Award
+  Award,
+  Home
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -68,60 +69,55 @@ export default function SHORAMarketDashboard() {
     filterCompanies();
   }, [companies, searchQuery, selectedSector]);
 
-  const loadMarketData = () => {
+  const loadMarketData = async () => {
     try {
       setLoading(true);
       
-      // Load all listed companies from localStorage
-      const allKeys = Object.keys(localStorage);
-      const listingKeys = allKeys.filter(key => key.startsWith('listing_'));
+      // Load all listed companies from Supabase
+      const response = await fetch('/api/shora/listings');
       
-      const loadedCompanies: ListedCompany[] = [];
+      if (!response.ok) {
+        throw new Error('Failed to load listings');
+      }
+      
+      const data = await response.json();
+      const listings = data.listings || [];
+      
+      const loadedCompanies: ListedCompany[] = listings
+        .filter((listing: any) => listing.listing_status === 'LISTED')
+        .map((listing: any) => {
+          // Simulate market data
+          const openPrice = listing.offer_price || listing.opening_price || 500;
+          const randomChange = (Math.random() - 0.5) * 20; // -10 to +10
+          const lastPrice = openPrice + randomChange;
+          const changePercent = (randomChange / openPrice) * 100;
+          
+          const company: ListedCompany = {
+            ticker: listing.ticker_symbol,
+            company_name: listing.company_name || listing.companies?.legal_name,
+            isin: listing.isin_code,
+            sector: listing.sector || 'Technology',
+            last_price: Math.round(lastPrice * 100) / 100,
+            open_price: openPrice,
+            high_price: Math.round((openPrice + Math.abs(randomChange) + 5) * 100) / 100,
+            low_price: Math.round((openPrice - Math.abs(randomChange) - 5) * 100) / 100,
+            change: Math.round(randomChange * 100) / 100,
+            change_percent: Math.round(changePercent * 100) / 100,
+            volume: Math.floor(Math.random() * 1000000) + 100000,
+            market_cap: listing.total_value || (listing.shares_offered * openPrice),
+            listed_date: listing.listing_date || listing.created_at
+          };
+          
+          return company;
+        });
 
-      listingKeys.forEach(key => {
-        try {
-          const listingData = localStorage.getItem(key);
-          if (listingData) {
-            const listing = JSON.parse(listingData);
-            
-            // Only include LISTED companies
-            if (listing.status === 'LISTED') {
-              // Simulate market data
-              const openPrice = listing.openingPrice || 500;
-              const randomChange = (Math.random() - 0.5) * 20; // -10 to +10
-              const lastPrice = openPrice + randomChange;
-              const changePercent = (randomChange / openPrice) * 100;
-              
-              const company: ListedCompany = {
-                ticker: listing.tickerSymbol,
-                company_name: listing.companyName,
-                isin: listing.isinCode,
-                sector: listing.sector || 'Technology',
-                last_price: Math.round(lastPrice * 100) / 100,
-                open_price: openPrice,
-                high_price: Math.round((openPrice + Math.abs(randomChange) + 5) * 100) / 100,
-                low_price: Math.round((openPrice - Math.abs(randomChange) - 5) * 100) / 100,
-                change: Math.round(randomChange * 100) / 100,
-                change_percent: Math.round(changePercent * 100) / 100,
-                volume: Math.floor(Math.random() * 1000000) + 100000,
-                market_cap: listing.marketCap || (listing.sharesOffered * openPrice),
-                listed_date: listing.listingDate
-              };
-              
-              loadedCompanies.push(company);
-            }
-          }
-        } catch (e) {
-          console.error(`Error loading ${key}:`, e);
-        }
-      });
-
-      // Only show real listed companies (no mock data)
       setCompanies(loadedCompanies);
-      
       setLastUpdate(new Date());
+      
+      console.log('✅ Loaded', loadedCompanies.length, 'listed companies from Supabase');
     } catch (error) {
       console.error('Error loading market data:', error);
+      setCompanies([]);
     } finally {
       setLoading(false);
     }
@@ -217,15 +213,27 @@ export default function SHORAMarketDashboard() {
                   Last Update: {mounted && lastUpdate ? lastUpdate.toLocaleTimeString() : '--:--:--'}
                 </span>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={loadMarketData}
-                className="bg-white/20 border-white/30 text-white hover:bg-white/30"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh
-              </Button>
+              <div className="flex items-center space-x-2">
+                <Link href="/capitallab/collaborative">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+                  >
+                    <Home className="h-4 w-4 mr-2" />
+                    Back to Hub
+                  </Button>
+                </Link>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={loadMarketData}
+                  className="bg-white/20 border-white/30 text-white hover:bg-white/30"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh
+                </Button>
+              </div>
             </div>
           </div>
         </div>

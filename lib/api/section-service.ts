@@ -43,19 +43,7 @@ export class SectionService {
   async getSections(applicationId: string): Promise<SectionWithProfiles[]> {
     const { data, error } = await this.supabase
       .from('application_sections')
-      .select(`
-        *,
-        completed_by_profile:profiles!application_sections_completed_by_fkey (
-          id,
-          full_name,
-          email
-        ),
-        reviewed_by_profile:profiles!application_sections_reviewed_by_fkey (
-          id,
-          full_name,
-          email
-        )
-      `)
+      .select('*')
       .eq('application_id', applicationId)
       .order('section_number')
 
@@ -72,19 +60,7 @@ export class SectionService {
   async getSectionById(sectionId: string): Promise<SectionWithProfiles | null> {
     const { data, error } = await this.supabase
       .from('application_sections')
-      .select(`
-        *,
-        completed_by_profile:profiles!application_sections_completed_by_fkey (
-          id,
-          full_name,
-          email
-        ),
-        reviewed_by_profile:profiles!application_sections_reviewed_by_fkey (
-          id,
-          full_name,
-          email
-        )
-      `)
+      .select('*')
       .eq('id', sectionId)
       .single()
 
@@ -104,19 +80,7 @@ export class SectionService {
   async getSectionByNumber(applicationId: string, sectionNumber: number): Promise<SectionWithProfiles | null> {
     const { data, error } = await this.supabase
       .from('application_sections')
-      .select(`
-        *,
-        completed_by_profile:profiles!application_sections_completed_by_fkey (
-          id,
-          full_name,
-          email
-        ),
-        reviewed_by_profile:profiles!application_sections_reviewed_by_fkey (
-          id,
-          full_name,
-          email
-        )
-      `)
+      .select('*')
       .eq('application_id', applicationId)
       .eq('section_number', sectionNumber)
       .single()
@@ -157,19 +121,7 @@ export class SectionService {
       .from('application_sections')
       .update(updateData as any)
       .eq('id', sectionId)
-      .select(`
-        *,
-        completed_by_profile:profiles!application_sections_completed_by_fkey (
-          id,
-          full_name,
-          email
-        ),
-        reviewed_by_profile:profiles!application_sections_reviewed_by_fkey (
-          id,
-          full_name,
-          email
-        )
-      `)
+      .select('*')
       .single()
 
     if (error) {
@@ -226,25 +178,10 @@ export class SectionService {
       .from('application_sections')
       .update({
         status: 'COMPLETED' as const,
-        completion_percentage: 100,
-        completed_by: userId,
-        completed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        completion_percentage: 100
       } as any)
       .eq('id', sectionId)
-      .select(`
-        *,
-        completed_by_profile:profiles!application_sections_completed_by_fkey (
-          id,
-          full_name,
-          email
-        ),
-        reviewed_by_profile:profiles!application_sections_reviewed_by_fkey (
-          id,
-          full_name,
-          email
-        )
-      `)
+      .select('*')
       .single()
 
     if (error) {

@@ -53,7 +53,7 @@ const COLLABORATIVE_ROLES: CollaborativeRole[] = [
     icon: Building2,
     status: 'active',
     workItems: 5,
-    route: '/capitallab/collaborative/issuer',
+    route: '/auth/issuer-entry',
     color: 'text-blue-700',
     bgColor: 'bg-blue-50 border-blue-200'
   },
@@ -221,6 +221,12 @@ export function CapitalLabCollaborativeHub({ userId, userRole }: CapitalLabColla
 
   const handleEnterRole = (role: CollaborativeRole) => {
     // Check if user needs to login for specific roles
+    if (role.id === 'issuer') {
+      // Always go to unified issuer entry page
+      router.push('/auth/issuer-entry');
+      return;
+    }
+    
     if (role.id === 'cma-regulator') {
       // Check if CMA regulator is logged in
       const session = localStorage.getItem('auth_session');
@@ -261,14 +267,22 @@ export function CapitalLabCollaborativeHub({ userId, userRole }: CapitalLabColla
     <div className="space-y-8">
       {/* Header */}
       <div className="text-center space-y-4">
-        <div className="flex items-center justify-center gap-3">
-          <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl">
-            <Workflow className="w-8 h-8 text-white" />
+        <div className="flex items-center justify-between max-w-6xl mx-auto">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl">
+              <Workflow className="w-8 h-8 text-white" />
+            </div>
+            <div className="text-left">
+              <h1 className="text-3xl font-bold text-foreground">CapitalLab Collaborative Hub</h1>
+              <p className="text-muted-foreground">Rwanda IPO Process Simulation</p>
+            </div>
           </div>
-          <div className="text-left">
-            <h1 className="text-3xl font-bold text-foreground">CapitalLab Collaborative Hub</h1>
-            <p className="text-muted-foreground">Rwanda IPO Process Simulation</p>
-          </div>
+          <Link href="/shora-market">
+            <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
+              <Award className="w-4 h-4 mr-2" />
+              View Market
+            </Button>
+          </Link>
         </div>
 
         {/* System Status */}

@@ -54,35 +54,32 @@ export default function SHORAExchangeSignupPage() {
         return;
       }
 
-      // Check if username or email already exists
-      const existingAccounts = JSON.parse(localStorage.getItem('shora_exchange_accounts') || '[]');
-      if (existingAccounts.find((acc: any) => acc.email === formData.email)) {
-        setError('Email already registered');
-        setLoading(false);
-        return;
+      // Create account using Supabase API
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          full_name: formData.fullName,
+          username: formData.username,
+          role: 'SHORA_EXCHANGE',
+          metadata: {
+            position: formData.position,
+            department: 'Exchange Operations'
+          }
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Signup failed');
       }
-      if (existingAccounts.find((acc: any) => acc.username === formData.username)) {
-        setError('Username already taken');
-        setLoading(false);
-        return;
-      }
 
-      // Create account
-      const newAccount = {
-        id: `shora-${Date.now()}`,
-        fullName: formData.fullName,
-        username: formData.username,
-        email: formData.email,
-        password: formData.password, // In production, this would be hashed
-        position: formData.position,
-        role: 'SHORA_EXCHANGE',
-        createdAt: new Date().toISOString()
-      };
-
-      // Save to localStorage
-      existingAccounts.push(newAccount);
-      localStorage.setItem('shora_exchange_accounts', JSON.stringify(existingAccounts));
-
+      console.log('✅ Shora Exchange account created:', data);
       setSuccess(true);
       
       // Redirect to login after 2 seconds

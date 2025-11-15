@@ -106,7 +106,7 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
     await fetchSession()
   }, [fetchSession])
 
-  const login = useCallback(async (username: string, password: string) => {
+  const login = useCallback(async (emailOrUsername: string, password: string) => {
     setLoading(true)
     setError(null)
 
@@ -116,7 +116,7 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ email: emailOrUsername, password })
       })
 
       const data = await response.json()
@@ -157,8 +157,8 @@ export function SimpleAuthProvider({ children }: { children: React.ReactNode }) 
         throw new Error(result.error || 'Signup failed')
       }
 
-      // Auto-login after signup
-      await login(data.username, data.password)
+      // Auto-login after signup using email
+      await login(data.email, data.password)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Signup failed'
       setError(errorMessage)

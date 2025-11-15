@@ -10,7 +10,7 @@ import Link from 'next/link';
 
 export default function SHORAExchangeLoginPage() {
   const router = useRouter();
-  const [usernameOrEmail, setUsernameOrEmail] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,39 +21,28 @@ export default function SHORAExchangeLoginPage() {
     setLoading(true);
 
     try {
-      // Check against registered accounts (allow login with username or email)
-      const accounts = JSON.parse(localStorage.getItem('shora_exchange_accounts') || '[]');
-      const account = accounts.find((acc: any) => 
-        (acc.email === usernameOrEmail || acc.username === usernameOrEmail) && 
-        acc.password === password
-      );
+      // Login using Supabase API
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+          password: password,
+        }),
+      });
 
-      if (account) {
-        // Create session
-        const session = {
-          user: {
-            id: account.id,
-            email: account.email,
-            full_name: account.fullName
-          },
-          profile: {
-            id: account.id,
-            user_id: account.id,
-            email: account.email,
-            full_name: account.fullName,
-            role: 'SHORA_EXCHANGE',
-            position: account.position
-          }
-        };
+      const data = await response.json();
 
-        // Use 'auth_session' key to match SimpleAuthContext
-        localStorage.setItem('auth_session', JSON.stringify(session));
-        
-        // Force a full page reload to ensure session is loaded
-        window.location.href = '/capitallab/collaborative/rse-listing';
-      } else {
-        setError('Invalid username/email or password');
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed');
       }
+
+      console.log('✅ Shora Exchange login successful');
+      
+      // Redirect to RSE listing page
+      window.location.href = '/capitallab/collaborative/rse-listing';
     } catch (err) {
       setError('Login failed. Please try again.');
     } finally {
@@ -93,12 +82,12 @@ export default function SHORAExchangeLoginPage() {
               )}
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Username or Email</label>
+                <label className="text-sm font-medium">Email</label>
                 <Input
-                  type="text"
-                  value={usernameOrEmail}
-                  onChange={(e) => setUsernameOrEmail(e.target.value)}
-                  placeholder="username or email@exchange.rw"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="email@exchange.rw"
                   required
                   disabled={loading}
                 />

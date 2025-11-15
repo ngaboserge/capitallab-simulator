@@ -65,54 +65,70 @@ function IssuerPageContent() {
     loadCompanyInfo();
   }, [profile?.company_id]);
 
-  // Load real section statuses from localStorage
+  // Load application ID
+  const [applicationId, setApplicationId] = useState<string | null>(null);
+  
   useEffect(() => {
-    const loadSectionStatuses = () => {
-      const statuses: Record<number, any> = {};
+    const loadApplication = async () => {
+      if (!profile?.company_id) return;
       
-      // Check each section (1-10) for completion status
-      for (let sectionNumber = 1; sectionNumber <= 10; sectionNumber++) {
-        const applicationId = profile?.company_id ? `mock-app-id-${profile.company_id}` : null;
-        if (applicationId) {
-          const sectionId = `${applicationId}-section-${sectionNumber}`;
-          const sectionKey = `mock_section_${sectionId}`;
-          
-          try {
-            const sectionData = localStorage.getItem(sectionKey);
-            if (sectionData) {
-              const parsedData = JSON.parse(sectionData);
-              
-              // Map the status from our mock service to dashboard format
-              switch (parsedData.status) {
-                case 'COMPLETED':
-                  statuses[sectionNumber] = 'completed';
-                  break;
-                case 'IN_PROGRESS':
-                  statuses[sectionNumber] = 'in_progress';
-                  break;
-                case 'NOT_STARTED':
-                default:
-                  statuses[sectionNumber] = 'not_started';
-                  break;
-              }
-            } else {
-              statuses[sectionNumber] = 'not_started';
-            }
-          } catch (error) {
-            console.error(`Error loading section ${sectionNumber} status:`, error);
-            statuses[sectionNumber] = 'not_started';
+      try {
+        const response = await fetch(`/api/cma/applications?company_id=${profile.company_id}`);
+        if (response.ok) {
+          const data = await response.json();
+          // API returns { applications: [...] }
+          const applications = data.applications || data;
+          if (applications && applications.length > 0) {
+            setApplicationId(applications[0].id);
           }
         }
+      } catch (error) {
+        console.error('Error loading application:', error);
       }
+    };
+    
+    loadApplication();
+  }, [profile?.company_id]);
+
+  // Load real section statuses from Supabase
+  useEffect(() => {
+    const loadSectionStatuses = async () => {
+      if (!applicationId) return;
       
-      setSectionStatuses(statuses);
+      try {
+        const response = await fetch(`/api/cma/applications/${applicationId}/sections`);
+        if (response.ok) {
+          const data = await response.json();
+          // API returns { sections: [...] }
+          const sections = data.sections || data;
+          const statuses: Record<number, any> = {};
+          
+          sections.forEach((section: any) => {
+            const statusMap: Record<string, string> = {
+              'COMPLETED': 'completed',
+              'IN_PROGRESS': 'in_progress',
+              'NOT_STARTED': 'not_started',
+              'UNDER_REVIEW': 'in_progress',
+              'APPROVED': 'completed',
+              'REJECTED': 'not_started'
+            };
+            
+            statuses[section.section_number] = statusMap[section.status] || 'not_started';
+          });
+          
+          console.log('Dashboard: Loaded section statuses:', statuses);
+          setSectionStatuses(statuses);
+        }
+      } catch (error) {
+        console.error('Error loading section statuses:', error);
+      }
     };
 
-    if (profile?.company_id) {
+    if (applicationId) {
       loadSectionStatuses();
       
       // Set up an interval to refresh section statuses periodically
-      const interval = setInterval(loadSectionStatuses, 2000); // Refresh every 2 seconds
+      const interval = setInterval(loadSectionStatuses, 5000); // Refresh every 5 seconds
       
       // Also refresh when the window gains focus (user returns from section page)
       const handleFocus = () => {
@@ -126,54 +142,14 @@ function IssuerPageContent() {
         window.removeEventListener('focus', handleFocus);
       };
     }
-  }, [profile?.company_id]);
+  }, [applicationId]);
 
   const handleSectionClick = (sectionNumber: number) => {
     // Navigate to the specific section form
     window.location.href = `/capitallab/collaborative/issuer/sections/${sectionNumber}`;
   };
 
-  // Function to manually refresh section statuses (can be called from components)
-  const refreshSectionStatuses = () => {
-    const statuses: Record<number, any> = {};
-    
-    // Check each section (1-10) for completion status
-    for (let sectionNumber = 1; sectionNumber <= 10; sectionNumber++) {
-      const applicationId = profile?.company_id ? `mock-app-id-${profile.company_id}` : null;
-      if (applicationId) {
-        const sectionId = `${applicationId}-section-${sectionNumber}`;
-        const sectionKey = `mock_section_${sectionId}`;
-        
-        try {
-          const sectionData = localStorage.getItem(sectionKey);
-          if (sectionData) {
-            const parsedData = JSON.parse(sectionData);
-            
-            // Map the status from our mock service to dashboard format
-            switch (parsedData.status) {
-              case 'COMPLETED':
-                statuses[sectionNumber] = 'completed';
-                break;
-              case 'IN_PROGRESS':
-                statuses[sectionNumber] = 'in_progress';
-                break;
-              case 'NOT_STARTED':
-              default:
-                statuses[sectionNumber] = 'not_started';
-                break;
-            }
-          } else {
-            statuses[sectionNumber] = 'not_started';
-          }
-        } catch (error) {
-          console.error(`Error loading section ${sectionNumber} status:`, error);
-          statuses[sectionNumber] = 'not_started';
-        }
-      }
-    }
-    
-    setSectionStatuses(statuses);
-  };
+
 
   // Check if application is ready for IB transfer
   const getCompletedSectionsCount = () => {
@@ -219,11 +195,11 @@ function IssuerPageContent() {
     );
   }
 
-  // Redirect to login if no profile (not logged in)
+  // Redirect to issuer entry if no profile (not logged in)
   if (!profile) {
-    // Immediate redirect to login with Issuer context
+    // Immediate redirect to issuer entry page
     if (typeof window !== 'undefined') {
-      window.location.href = '/auth/login?returnUrl=' + encodeURIComponent('/capitallab/collaborative/issuer') + '&role=ISSUER';
+      window.location.href = '/auth/issuer-entry';
     }
     
     return (
@@ -250,19 +226,30 @@ function IssuerPageContent() {
   }
 
   return (
-    <SimpleProtectedRoute allowedRoles={['ISSUER']}>
+    <SimpleProtectedRoute 
+      allowedRoles={['ISSUER', 'ISSUER_CEO', 'ISSUER_CFO', 'ISSUER_SECRETARY', 'ISSUER_LEGAL_ADVISOR']}
+      redirectTo="/auth/issuer-entry"
+    >
       <div className="min-h-screen bg-background">
         {/* Header */}
         <div className="border-b bg-white">
           <div className="max-w-7xl mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <Link href="/capitallab/collaborative">
-                  <Button variant="ghost" size="sm">
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back to Hub
-                  </Button>
-                </Link>
+                <div className="flex items-center space-x-2">
+                  <Link href="/capitallab/collaborative">
+                    <Button variant="ghost" size="sm">
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      Back to Hub
+                    </Button>
+                  </Link>
+                  <span className="text-gray-300">|</span>
+                  <Link href="/shora-market">
+                    <Button variant="ghost" size="sm" className="text-purple-600 hover:text-purple-700">
+                      View Market
+                    </Button>
+                  </Link>
+                </div>
                 <div className="flex items-center space-x-3">
                   <div className="p-2 bg-blue-100 rounded-lg">
                     <RoleIcon className="h-6 w-6 text-blue-600" />
@@ -294,12 +281,12 @@ function IssuerPageContent() {
                     if (confirm('Are you sure you want to logout?')) {
                       try {
                         await logout();
-                        // Redirect to login with return URL and role hint for Issuer
-                        window.location.href = '/auth/login?returnUrl=' + encodeURIComponent('/capitallab/collaborative/issuer') + '&role=ISSUER';
+                        // Redirect to issuer entry page
+                        window.location.href = '/auth/issuer-entry';
                       } catch (error) {
                         console.error('Logout error:', error);
-                        // Fallback to manual logout with role hint
-                        window.location.href = '/auth/login?role=ISSUER';
+                        // Fallback to issuer entry page
+                        window.location.href = '/auth/issuer-entry';
                       }
                     }
                   }}
@@ -425,7 +412,7 @@ function IssuerPageContent() {
                 userRole={profile.company_role as IssuerRole}
                 userName={profile.full_name || profile.username}
                 companyName={companyName || 'Your Company'}
-                applicationId={profile?.company_id ? `mock-app-id-${profile.company_id}` : undefined}
+                applicationId={applicationId || undefined}
                 companyId={profile?.company_id || undefined}
                 sectionStatuses={sectionStatuses}
                 onSectionClick={handleSectionClick}

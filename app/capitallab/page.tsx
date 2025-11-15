@@ -37,7 +37,7 @@ export default function CapitalLabPage() {
                 <li>• Market process education</li>
                 <li>• Progress tracking</li>
               </ul>
-              <Link href="/capitallab/education">
+              <Link href="/capitallab/learn">
                 <Button className="w-full">
                   Start Learning
                   <ArrowRight className="w-4 h-4 ml-2" />
@@ -82,7 +82,7 @@ export default function CapitalLabPage() {
                 CapitalLab provides hands-on experience with Rwanda's IPO process.
               </p>
               <div className="flex gap-4 justify-center">
-                <Link href="/capitallab/education">
+                <Link href="/capitallab/learn">
                   <Button variant="outline">Learn First</Button>
                 </Link>
                 <Link href="/capitallab/collaborative">

@@ -32,6 +32,11 @@ interface TeamMember {
 interface IssuerTeamSignupProps {
   onSuccess?: (company: any, team: TeamMember[]) => void;
   onError?: (error: string) => void;
+  currentUser?: {
+    fullName: string;
+    email: string;
+    role: IssuerRole;
+  } | null;
 }
 
 const ROLE_ICONS = {
@@ -48,7 +53,7 @@ const ROLE_COLORS = {
   SECRETARY: 'bg-orange-100 text-orange-800 border-orange-200'
 };
 
-export function IssuerTeamSignup({ onSuccess, onError }: IssuerTeamSignupProps) {
+export function IssuerTeamSignup({ onSuccess, onError, currentUser }: IssuerTeamSignupProps) {
   const [step, setStep] = useState<'company' | 'team' | 'review'>('company');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,18 +67,31 @@ export function IssuerTeamSignup({ onSuccess, onError }: IssuerTeamSignupProps) 
     description: ''
   });
 
-  // Team members
+  // Team members - pre-fill with current user if available
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([
     {
-      fullName: '',
-      email: '',
-      username: '',
-      password: '',
-      role: 'CEO'
+      fullName: currentUser?.fullName || '',
+      email: currentUser?.email || '',
+      username: currentUser?.email?.split('@')[0] || '',
+      password: '********', // Placeholder since user is already logged in
+      role: currentUser?.role || 'CEO'
     }
   ]);
 
   const [selectedRole, setSelectedRole] = useState<IssuerRole>('CEO');
+
+  // Update team members when currentUser becomes available
+  React.useEffect(() => {
+    if (currentUser && teamMembers[0]) {
+      setTeamMembers([{
+        fullName: currentUser.fullName,
+        email: currentUser.email,
+        username: currentUser.email.split('@')[0],
+        password: '********',
+        role: currentUser.role
+      }]);
+    }
+  }, [currentUser]);
 
   const addTeamMember = (role: IssuerRole) => {
     // Check if role already exists

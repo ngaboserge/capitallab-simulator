@@ -4,9 +4,10 @@ import { createTypedServerClient } from '@/lib/supabase/typed-client'
 // GET /api/cma/applications/[id]/sections - Get all sections for an application
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createTypedServerClient()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
@@ -29,7 +30,7 @@ export async function GET(
     const { data: application } = await supabase
       .from('ipo_applications')
       .select('company_id, assigned_ib_advisor, assigned_cma_officer, status')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (!application) {
@@ -39,7 +40,7 @@ export async function GET(
     // Verify access based on role
     const hasAccess = 
       (profile as any).role === 'CMA_ADMIN' ||
-      ((profile as any).role === 'ISSUER' && (application as any).company_id === (profile as any).company_id) ||
+      ((profile as any).role?.startsWith('ISSUER_') && (application as any).company_id === (profile as any).company_id) ||
       ((profile as any).role === 'IB_ADVISOR' && (application as any).assigned_ib_advisor === user.id) ||
       ((profile as any).role === 'CMA_REGULATOR' && (
         (application as any).assigned_cma_officer === user.id ||
@@ -50,22 +51,11 @@ export async function GET(
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
+    // Fetch sections without profile joins for now (simpler query)
     const { data: sections, error } = await supabase
       .from('application_sections')
-      .select(`
-        *,
-        completed_by_profile:profiles!application_sections_completed_by_fkey (
-          id,
-          full_name,
-          email
-        ),
-        reviewed_by_profile:profiles!application_sections_reviewed_by_fkey (
-          id,
-          full_name,
-          email
-        )
-      `)
-      .eq('application_id', params.id)
+      .select('*')
+      .eq('application_id', id)
       .order('section_number')
 
     if (error) {

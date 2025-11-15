@@ -23,9 +23,8 @@ export async function GET(
         legal_name,
         trading_name,
         registration_number,
-        industry_sector,
-        business_description,
-        status,
+        industry,
+        country,
         created_at
       `)
       .eq('id', id)

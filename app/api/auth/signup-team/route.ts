@@ -108,9 +108,8 @@ export async function POST(request: NextRequest) {
         legal_name: company.legalName,
         trading_name: company.tradingName || null,
         registration_number: company.registrationNumber,
-        industry_sector: company.industry || null,
-        business_description: company.description || null,
-        status: 'ACTIVE'
+        industry: company.industry || null,
+        country: 'Rwanda'
       })
       .select()
       .single()
@@ -133,40 +132,68 @@ export async function POST(request: NextRequest) {
       for (const member of team) {
         console.log('Creating user for:', member.email)
         
-        // Create auth user
-        const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-          email: member.email,
-          password: member.password,
-          email_confirm: true,
-          app_metadata: {},
-          user_metadata: {
-            full_name: member.fullName,
-            role: 'ISSUER',
-            company_role: member.role
-          }
-        })
+        // Check if user already exists in auth.users
+        const { data: existingUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers()
+        const existingUser = existingUsers?.users.find(u => u.email === member.email)
+        
+        let userId: string
+        
+        if (existingUser) {
+          // User already exists (logged-in CEO), just use their ID
+          console.log('User already exists in auth, using existing account:', existingUser.id)
+          userId = existingUser.id
+          // Don't add to createdUsers since we didn't create them
+        } else {
+          // Create new auth user for team member
+          const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+            email: member.email,
+            password: member.password,
+            email_confirm: true,
+            app_metadata: {},
+            user_metadata: {
+              full_name: member.fullName,
+              role: `ISSUER_${member.role}`
+            }
+          })
 
-        if (authError || !authData.user) {
-          console.error('Auth user creation error:', authError)
-          throw new Error(`Failed to create user ${member.email}: ${authError?.message || 'Unknown error'}`)
+          if (authError || !authData.user) {
+            console.error('Auth user creation error:', authError)
+            throw new Error(`Failed to create user ${member.email}: ${authError?.message || 'Unknown error'}`)
+          }
+
+          userId = authData.user.id
+          createdUsers.push(authData.user)
+          console.log('Auth user created:', authData.user.id)
         }
 
-        createdUsers.push(authData.user)
-        console.log('Auth user created:', authData.user.id)
+        // Map role to database format (CEO -> ISSUER_CEO)
+        const dbRole = `ISSUER_${member.role}`
 
-        // Create profile
-        const { error: profileError } = await supabaseAdmin
-          .from('profiles')
-          .insert({
-            id: authData.user.id,
-            email: member.email,
-            username: member.username,
-            full_name: member.fullName,
-            role: 'ISSUER',
-            company_id: companyData.id,
-            company_role: member.role,
-            is_active: true
-          })
+        // Update or create profile
+        let profileError
+        
+        if (existingUser) {
+          // For existing users, just update the company_id
+          const { error } = await supabaseAdmin
+            .from('profiles')
+            .update({ company_id: companyData.id })
+            .eq('id', userId)
+          profileError = error
+        } else {
+          // For new users, insert full profile
+          const { error } = await supabaseAdmin
+            .from('profiles')
+            .upsert({
+              id: userId,
+              email: member.email,
+              full_name: member.fullName,
+              role: dbRole,
+              company_id: companyData.id
+            }, {
+              onConflict: 'id'
+            })
+          profileError = error
+        }
 
         if (profileError) {
           console.error('Profile creation error:', profileError)
@@ -174,11 +201,11 @@ export async function POST(request: NextRequest) {
         }
 
         createdProfiles.push({
-          id: authData.user.id,
+          id: userId,
           email: member.email,
           username: member.username,
           full_name: member.fullName,
-          role: 'ISSUER',
+          role: dbRole,
           company_role: member.role
         })
 
@@ -194,11 +221,64 @@ export async function POST(request: NextRequest) {
           .eq('id', companyData.id)
       }
 
+      // Create IPO application for the company
+      const { data: applicationData, error: appError } = await supabaseAdmin
+        .from('ipo_applications')
+        .insert({
+          company_id: companyData.id,
+          status: 'DRAFT',
+          current_phase: 'TEAM_SETUP',
+          completion_percentage: 0
+        })
+        .select()
+        .single()
+
+      if (appError || !applicationData) {
+        console.error('Application creation error:', appError)
+        throw new Error('Failed to create IPO application')
+      }
+
+      // Create all 10 sections for the application
+      const sectionTitles = [
+        'Company Identity & Legal Form',
+        'Capitalization & Financial Strength',
+        'Share Ownership & Distribution',
+        'Governance & Management',
+        'Legal & Regulatory Compliance',
+        'Offer Details (IPO Information)',
+        'Prospectus & Disclosure Checklist',
+        'Publication & Advertisement',
+        'Post-Approval Undertakings',
+        'Declarations & Contacts'
+      ];
+
+      const sectionRoles = ['CEO', 'CFO', 'CEO', 'CEO', 'LEGAL_ADVISOR', 'CFO', 'SECRETARY', 'SECRETARY', 'CEO', 'CEO'];
+
+      const sectionsToCreate = sectionTitles.map((title, index) => ({
+        application_id: applicationData.id,
+        section_number: index + 1,
+        section_title: title,
+        assigned_role: sectionRoles[index],
+        status: 'NOT_STARTED',
+        data: {},
+        completion_percentage: 0
+      }));
+
+      const { error: sectionsError } = await supabaseAdmin
+        .from('application_sections')
+        .insert(sectionsToCreate)
+
+      if (sectionsError) {
+        console.error('Sections creation error:', sectionsError)
+        throw new Error('Failed to create application sections')
+      }
+
       return NextResponse.json({
         success: true,
         company: companyData,
+        application: applicationData,
         team: createdProfiles,
-        message: `Successfully created company "${company.legalName}" with ${team.length} team members`
+        message: `Successfully created company "${company.legalName}" with ${team.length} team members and IPO application`
       })
 
     } catch (error) {

@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { User, Users, TrendingUp, Trophy, ArrowRight, BookOpen, Building2, Shield, Award } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import Image from "next/image"
 
 export default function Home() {
   const router = useRouter()
@@ -13,17 +14,18 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
       <div className="relative overflow-hidden border-b border-border h-[500px]">
-        {/* Background Image */}
+        {/* Background Image - Lightly Blurred */}
         <div
-          className="absolute inset-0 bg-cover bg-center"
+          className="absolute inset-0 bg-cover bg-center scale-105"
           style={{
             backgroundImage: `url('/african-business-professionals-modern-office-tradi.jpg')`,
+            filter: 'blur(5px)',
           }}
         />
         {/* Gradient Overlay for text readability */}
-        <div className="absolute inset-0 bg-gradient-to-br from-background/95 via-background/90 to-background/80" />
+        <div className="absolute inset-0 bg-gradient-to-br from-background/90 via-background/85 to-background/80" />
         {/* Pattern Overlay */}
-        <div className="absolute inset-0 african-pattern opacity-30" />
+        <div className="absolute inset-0 african-pattern opacity-28" />
 
         <div className="relative z-10 max-w-4xl mx-auto px-4 h-full flex items-center justify-center text-center">
           <div className="space-y-6 animate-slide-up">
@@ -33,9 +35,14 @@ export default function Home() {
 
             <div className="flex justify-center py-4">
               <div className="relative rounded-2xl overflow-hidden shadow-2xl bg-white p-6">
-                <div className="w-auto h-28 lg:h-32 flex items-center justify-center text-gradient text-4xl lg:text-5xl font-bold">
-                  SHORA Markets
-                </div>
+                <Image
+                  src="/shora-logo.png"
+                  alt="SHORA Markets"
+                  width={700}
+                  height={200}
+                  className="w-auto h-28 lg:h-32 object-contain"
+                  priority
+                />
               </div>
             </div>
 
@@ -49,16 +56,16 @@ export default function Home() {
       {/* Selection Section */}
       <div className="max-w-6xl mx-auto px-4 py-16">
         <div className="space-y-8">
-          {/* Section Header */}
-          <div className="text-center space-y-4 animate-slide-up">
+          {/* Section Header - HIDDEN */}
+          <div className="hidden text-center space-y-4 animate-slide-up">
             <h2 className="text-3xl lg:text-4xl font-bold text-foreground">Choose Your Trading Path</h2>
             <p className="text-lg text-muted-foreground text-pretty max-w-2xl mx-auto leading-relaxed">
               Whether you prefer solo trading or collaborative team strategies, SHORA has the perfect experience for you.
             </p>
           </div>
 
-          {/* Selection Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-slide-up" style={{ animationDelay: "0.2s" }}>
+          {/* Selection Cards - HIDDEN */}
+          <div className="hidden grid-cols-1 md:grid-cols-2 gap-6 animate-slide-up" style={{ animationDelay: "0.2s" }}>
             {/* Individual Card */}
             <Card className="relative overflow-hidden border-2 border-primary/20 hover:border-primary/40 transition-all duration-300 card-hover african-pattern group">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5 group-hover:from-primary/20 transition-all duration-300" />
@@ -165,8 +172,8 @@ export default function Home() {
 
 
 
-          {/* Stats Footer */}
-          <div className="grid grid-cols-3 gap-4 max-w-3xl mx-auto animate-slide-up" style={{ animationDelay: "0.4s" }}>
+          {/* Stats Footer - HIDDEN */}
+          <div className="hidden grid-cols-3 gap-4 max-w-3xl mx-auto animate-slide-up" style={{ animationDelay: "0.4s" }}>
             <div className="text-center p-4 rounded-lg border border-border bg-card/50 backdrop-blur-sm card-hover">
               <div className="flex items-center justify-center gap-2 mb-2">
                 <TrendingUp className="w-4 h-4 text-primary" />

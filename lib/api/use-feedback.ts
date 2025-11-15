@@ -56,6 +56,14 @@ export function useFeedback(applicationId: string) {
       setLoading(true);
       setError(null);
 
+      // Skip if this is a localStorage-based application (not a real UUID)
+      if (!applicationId || applicationId.startsWith('ib_transfer_') || applicationId.startsWith('demo-')) {
+        console.log('Skipping feedback load for localStorage application:', applicationId);
+        setFeedback([]);
+        setLoading(false);
+        return;
+      }
+
       const response = await fetch(`/api/cma/applications/${applicationId}/feedback`);
       const data = await response.json();
 
@@ -83,6 +91,11 @@ export function useFeedback(applicationId: string) {
     section_id?: string;
   }) => {
     try {
+      // Skip if this is a localStorage-based application
+      if (!applicationId || applicationId.startsWith('ib_transfer_') || applicationId.startsWith('demo-')) {
+        throw new Error('Feedback is only available for real applications. Please create a new application in the system.');
+      }
+
       const response = await fetch(`/api/cma/applications/${applicationId}/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

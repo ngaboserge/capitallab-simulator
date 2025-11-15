@@ -6,7 +6,13 @@ import type { Database } from '@/lib/supabase/types'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { username, password, email, fullName, role, companyName, companyRole, ibAdvisorProfile } = body
+    let { username, password, email, fullName, role, companyName, companyRole, ibAdvisorProfile, phone, metadata } = body
+
+    // Auto-generate username if not provided
+    if (!username && email) {
+      const timestamp = Date.now().toString().slice(-6)
+      username = `${email.split('@')[0]}_${timestamp}`
+    }
 
     // Validate required fields
     if (!username || !password || !email || !role) {
@@ -17,7 +23,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate role
-    const validRoles = ['ISSUER', 'IB_ADVISOR', 'CMA_REGULATOR', 'CMA_ADMIN']
+    const validRoles = ['ISSUER', 'IB_ADVISOR', 'CMA_REGULATOR', 'CMA_ADMIN', 'SHORA_EXCHANGE', 'SHORA_ADMIN', 'SHORA_OPERATOR']
     if (!validRoles.includes(role)) {
       return NextResponse.json(
         { error: 'Invalid role' },
@@ -138,8 +144,7 @@ export async function POST(request: NextRequest) {
           .from('companies')
           .insert({
             legal_name: companyName,
-            status: 'ACTIVE',
-            created_by: authData.user.id
+            country: 'Rwanda'
           })
           .select()
           .single()
@@ -175,37 +180,59 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create user profile
+    // Update profile (trigger creates it automatically)
     try {
-      console.log('Creating profile for user:', authData.user.id)
-      const profileData: any = {
-        id: authData.user.id,
-        email,
-        username,
+      console.log('Updating profile for user:', authData.user.id)
+      
+      // Wait for trigger to create profile
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
+      const profileUpdate: any = {
         full_name: fullName || null,
-        role,
         company_id: companyId,
-        company_role: role === 'ISSUER' ? (companyRole || 'CEO') : null,
-        is_active: true
-      }
+        role: role, // Set the role field
+        is_ib_advisor: role === 'IB_ADVISOR',
+        phone: phone || null
+      };
 
       // Add IB Advisor profile data if provided
       if (role === 'IB_ADVISOR' && ibAdvisorProfile) {
-        profileData.ib_advisor_profile = ibAdvisorProfile
+        profileUpdate.ib_advisor_profile = ibAdvisorProfile;
+      }
+
+      // Add CMA Regulator specific fields if provided
+      if ((role === 'CMA_REGULATOR' || role === 'CMA_ADMIN') && metadata) {
+        if (metadata.employee_id) {
+          profileUpdate.employee_id = metadata.employee_id;
+        }
+        if (metadata.department) {
+          profileUpdate.department = metadata.department;
+        }
+      }
+
+      // Add Shora Exchange specific fields if provided (only if columns exist)
+      if ((role === 'SHORA_EXCHANGE' || role === 'SHORA_ADMIN' || role === 'SHORA_OPERATOR') && metadata) {
+        // Store in user_metadata instead if position column doesn't exist
+        // This will be available in the auth.users table
+        if (metadata.position || metadata.department) {
+          // Just skip for now - position can be added later if needed
+          console.log('Shora Exchange metadata:', metadata);
+        }
       }
 
       const { error: profileError } = await supabaseAdmin
         .from('profiles')
-        .insert(profileData)
+        .update(profileUpdate)
+        .eq('id', authData.user.id)
 
       if (profileError) {
-        console.error('Profile creation error:', profileError)
+        console.error('Profile update error:', profileError)
         throw new Error(profileError.message)
       }
       
-      console.log('Profile created successfully')
+      console.log('Profile updated successfully')
     } catch (profileError) {
-      console.error('Profile creation failed, rolling back:', profileError)
+      console.error('Profile update failed, rolling back:', profileError)
       // Rollback: delete the auth user and company
       try {
         await supabaseAdmin.auth.admin.deleteUser(authData.user.id)

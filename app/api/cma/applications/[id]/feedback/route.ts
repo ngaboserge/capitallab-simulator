@@ -4,9 +4,10 @@ import { createTypedServerClient } from '@/lib/supabase/typed-client';
 // GET /api/cma/applications/[id]/feedback - Get all feedback for application
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = await createTypedServerClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -21,7 +22,7 @@ export async function GET(
         creator:profiles!application_feedback_created_by_fkey(id, full_name, role),
         resolver:profiles!application_feedback_resolved_by_fkey(id, full_name, role)
       `)
-      .eq('application_id', params.id)
+      .eq('application_id', id)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -37,9 +38,10 @@ export async function GET(
 // POST /api/cma/applications/[id]/feedback - Create new feedback
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = await createTypedServerClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -61,7 +63,7 @@ export async function POST(
     const { data: application } = await supabase
       .from('ipo_applications')
       .select('assigned_ib_advisor, company_id')
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
     if (!application) {
@@ -84,7 +86,7 @@ export async function POST(
     const { data: feedback, error } = await supabase
       .from('application_feedback')
       .insert({
-        application_id: params.id,
+        application_id: id,
         section_id: section_id || null,
         category,
         issue,
@@ -114,7 +116,7 @@ export async function POST(
         title: 'New Feedback from IB Advisor',
         message: `Your IB Advisor has provided feedback on: ${category}`,
         type: 'QUERY_ISSUED',
-        application_id: params.id,
+        application_id: id,
         priority: priority || 'MEDIUM'
       }));
 

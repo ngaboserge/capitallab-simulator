@@ -53,22 +53,50 @@ const SECTION_TITLES: Record<string, string> = {
 
 export function ApplicationDataViewer({ applicationId }: ApplicationDataViewerProps) {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['1']));
-  const [transferData, setTransferData] = useState<any>(null);
-  const [cmaSubmission, setCmaSubmission] = useState<any>(null);
+  const [applicationData, setApplicationData] = useState<any>(null);
+  const [sections, setSections] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   React.useEffect(() => {
-    // Load transfer data
-    const data = localStorage.getItem(applicationId);
-    if (data) {
-      setTransferData(JSON.parse(data));
-    }
+    const loadApplicationData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-    // Load CMA submission data
-    const submissionKey = `cma_submission_${applicationId}`;
-    const submissionData = localStorage.getItem(submissionKey);
-    if (submissionData) {
-      setCmaSubmission(JSON.parse(submissionData));
-    }
+        // Load application data from Supabase API
+        const response = await fetch(`/api/cma/applications/${applicationId}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to load application data');
+        }
+
+        const data = await response.json();
+        console.log('📋 Application data loaded:', data.application);
+        
+        setApplicationData(data.application);
+        setSections(data.application?.application_sections || []);
+        
+      } catch (err) {
+        console.error('Error loading application data:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load application data');
+        
+        // Fallback to localStorage for backward compatibility
+        const localData = localStorage.getItem(applicationId);
+        if (localData) {
+          const parsed = JSON.parse(localData);
+          setApplicationData(parsed);
+          setSections(Object.entries(parsed.sections || {}).map(([id, data]: any) => ({
+            section_number: parseInt(id),
+            ...data
+          })));
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadApplicationData();
   }, [applicationId]);
 
   const toggleSection = (sectionId: string) => {
@@ -81,7 +109,7 @@ export function ApplicationDataViewer({ applicationId }: ApplicationDataViewerPr
     setExpandedSections(newExpanded);
   };
 
-  if (!transferData) {
+  if (loading) {
     return (
       <Card>
         <CardContent className="p-8 text-center">
@@ -92,8 +120,21 @@ export function ApplicationDataViewer({ applicationId }: ApplicationDataViewerPr
     );
   }
 
-  const sections = transferData.sections || {};
-  const sectionKeys = Object.keys(sections).sort((a, b) => parseInt(a) - parseInt(b));
+  if (error && !applicationData) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center">
+          <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
+          <p className="text-red-600 font-medium mb-2">Error Loading Application</p>
+          <p className="text-sm text-gray-600">{error}</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const sectionKeys = sections
+    .sort((a, b) => (a.section_number || 0) - (b.section_number || 0))
+    .map(s => s.section_number?.toString() || s.id);
 
   return (
     <div className="space-y-6">
@@ -109,39 +150,55 @@ export function ApplicationDataViewer({ applicationId }: ApplicationDataViewerPr
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <p className="text-sm text-gray-600">Company Name</p>
-              <p className="font-semibold text-gray-900">{cmaSubmission?.companyName || transferData.companyName || 'N/A'}</p>
+              <p className="font-semibold text-gray-900">
+                {applicationData?.companies?.legal_name || applicationData?.company?.legal_name || 'N/A'}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-600">Total Sections</p>
-              <p className="font-semibold text-gray-900">{sectionKeys.length} sections</p>
+              <p className="font-semibold text-gray-900">{sections.length} sections</p>
             </div>
             <div>
               <p className="text-sm text-gray-600">Completion Status</p>
               <p className="font-semibold text-green-700">
-                {Object.values(sections).filter((s: any) => s.status === 'COMPLETED').length} / {sectionKeys.length} completed
+                {sections.filter((s: any) => s.status === 'COMPLETED').length} / {sections.length} completed
               </p>
             </div>
           </div>
 
-          {cmaSubmission?.ibComments && (
-            <div className="mt-4 p-4 bg-white rounded-lg border border-blue-200">
-              <p className="text-sm font-semibold text-blue-900 mb-2">IB Advisor Comments:</p>
-              <p className="text-sm text-gray-700">{cmaSubmission.ibComments}</p>
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm text-gray-600">Application Number</p>
+              <p className="font-semibold text-gray-900">{applicationData?.application_number || 'N/A'}</p>
             </div>
-          )}
+            <div>
+              <p className="text-sm text-gray-600">Status</p>
+              <p className="font-semibold text-gray-900">{applicationData?.status || 'N/A'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Target Amount</p>
+              <p className="font-semibold text-gray-900">
+                {applicationData?.target_amount ? `RWF ${applicationData.target_amount.toLocaleString()}` : 'TBD'}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Completion</p>
+              <p className="font-semibold text-gray-900">{applicationData?.completion_percentage || 0}%</p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
       {/* Section Data */}
       <div className="space-y-4">
-        {sectionKeys.map((sectionId) => {
-          const section = sections[sectionId];
+        {sections.map((section: any) => {
+          const sectionId = section.section_number?.toString() || section.id;
           const Icon = SECTION_ICONS[sectionId] || FileText;
           const isExpanded = expandedSections.has(sectionId);
-          const sectionTitle = SECTION_TITLES[sectionId] || `Section ${sectionId}`;
+          const sectionTitle = section.section_title || SECTION_TITLES[sectionId] || `Section ${sectionId}`;
 
           return (
-            <Card key={sectionId} className="border-2 hover:shadow-md transition-shadow">
+            <Card key={section.id} className="border-2 hover:shadow-md transition-shadow">
               <CardHeader 
                 className="cursor-pointer hover:bg-gray-50"
                 onClick={() => toggleSection(sectionId)}
@@ -202,32 +259,28 @@ export function ApplicationDataViewer({ applicationId }: ApplicationDataViewerPr
         })}
       </div>
 
-      {/* IB Advisor Deal Structure (if available) */}
-      {cmaSubmission?.dealStructure && (
+      {/* Offering Details */}
+      {applicationData?.target_amount && (
         <Card className="border-2 border-green-200 bg-gradient-to-r from-green-50 to-emerald-50">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <DollarSign className="h-5 w-5 text-green-600" />
-              <span>IB Advisor Deal Structure</span>
+              <span>Offering Details</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div className="bg-white p-4 rounded-lg">
-                <p className="text-sm text-gray-600">Offer Type</p>
-                <p className="font-semibold text-gray-900">{cmaSubmission.dealStructure.offerType}</p>
+                <p className="text-sm text-gray-600">Target Amount</p>
+                <p className="font-semibold text-green-700">RWF {applicationData.target_amount.toLocaleString()}</p>
               </div>
               <div className="bg-white p-4 rounded-lg">
-                <p className="text-sm text-gray-600">Total Shares</p>
-                <p className="font-semibold text-gray-900">{cmaSubmission.dealStructure.totalShares?.toLocaleString()}</p>
+                <p className="text-sm text-gray-600">Application Status</p>
+                <p className="font-semibold text-gray-900">{applicationData.status}</p>
               </div>
               <div className="bg-white p-4 rounded-lg">
-                <p className="text-sm text-gray-600">Offer Price</p>
-                <p className="font-semibold text-gray-900">RWF {cmaSubmission.dealStructure.offerPrice?.toLocaleString()}</p>
-              </div>
-              <div className="bg-white p-4 rounded-lg">
-                <p className="text-sm text-gray-600">Total Amount</p>
-                <p className="font-semibold text-green-700">RWF {cmaSubmission.dealStructure.totalAmount?.toLocaleString()}</p>
+                <p className="text-sm text-gray-600">Current Phase</p>
+                <p className="font-semibold text-gray-900">{applicationData.current_phase || 'N/A'}</p>
               </div>
             </div>
           </CardContent>

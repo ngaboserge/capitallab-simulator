@@ -14,7 +14,7 @@ import { useDocuments } from '@/lib/supabase/use-documents';
 import { Document as SupabaseDocument } from '@/lib/supabase/types';
 import { Document as ApiDocument } from '@/lib/api/document-service';
 import { DocumentListViewer } from '@/components/cma-issuer/form-components/document-viewer';
-import { useFeedbackLocalStorage } from '@/lib/api/use-feedback-localstorage';
+import { useFeedback } from '@/lib/api/use-feedback';
 import { FeedbackCommunication } from '@/components/feedback/feedback-communication';
 import { 
   Briefcase, 
@@ -46,6 +46,7 @@ interface Application {
   target_amount: number | null;
   completion_percentage: number | null;
   assigned_ib_advisor: string | null;
+  assigned_cma_officer: string | null;
   company?: {
     legal_name: string;
     trading_name?: string;
@@ -92,33 +93,55 @@ function IBAdvisorPageContent() {
   });
   const [selectedRegulator, setSelectedRegulator] = useState<string>('');
   const [availableRegulators, setAvailableRegulators] = useState<any[]>([]);
+  const [sections, setSections] = useState<any[]>([]);
+  const [sectionsLoading, setSectionsLoading] = useState(false);
 
-  // Use feedback hook for selected application (localStorage version)
+  // Use feedback hook for selected application (Supabase version)
   const { 
     feedback: feedbackItems, 
     createFeedback, 
     loading: feedbackLoading 
-  } = useFeedbackLocalStorage(
-    selectedApplication?.id || '', 
-    profile?.id, 
-    profile?.full_name || profile?.username,
-    'IB_ADVISOR'
-  );
+  } = useFeedback(selectedApplication?.id || '');
 
   // Create applicationService instance (must be after hooks)
   const applicationService = new ApplicationService();
 
   // ALL useEffect hooks must also be at the top
-  // Load applications for IB review (from localStorage)
+  // Load applications for IB review (from Supabase + localStorage fallback)
   useEffect(() => {
     const loadApplications = async () => {
       try {
         setLoading(true);
         
-        // Load transferred applications from localStorage
-        const ibTransfersKey = `ib_transfers_${profile?.id || 'demo'}`;
+        if (!profile?.id) {
+          setLoading(false);
+          return;
+        }
+
+        // First, try to load from Supabase
+        try {
+          const response = await fetch(`/api/ib-advisors/applications?ibAdvisorId=${profile.id}`);
+          if (response.ok) {
+            const data = await response.json();
+            console.log('Supabase API response:', data);
+            if (data.applications && data.applications.length > 0) {
+              console.log('✅ Loaded', data.applications.length, 'applications from Supabase');
+              setApplications(data.applications);
+              setLoading(false);
+              return;
+            } else {
+              console.log('⚠️ No applications found in Supabase, checking localStorage...');
+            }
+          } else {
+            console.warn('❌ Supabase API returned error:', response.status);
+          }
+        } catch (apiError) {
+          console.error('❌ Failed to load from Supabase:', apiError);
+        }
+
+        // Fallback to localStorage for backward compatibility
+        const ibTransfersKey = `ib_transfers_${profile.id}`;
         console.log('IB Advisor loading transfers with key:', ibTransfersKey);
-        console.log('IB Advisor profile ID:', profile?.id);
         
         const transfersData = localStorage.getItem(ibTransfersKey);
         console.log('Transfers data found:', transfersData ? 'YES' : 'NO');
@@ -153,7 +176,7 @@ function IBAdvisorPageContent() {
               submission_date: transfer.transferDate,
               target_amount: null,
               completion_percentage: completionPercentage,
-              assigned_ib_advisor: profile?.id || null,
+              assigned_ib_advisor: profile.id,
               company: {
                 legal_name: transfer.companyName,
                 trading_name: transfer.companyName
@@ -163,24 +186,8 @@ function IBAdvisorPageContent() {
           
           setApplications(loadedApplications);
         } else {
-          // No transfers yet, show demo applications
-          const mockApplications: Application[] = [
-            {
-              id: 'demo-app-1',
-              company_id: 'demo-company-1',
-              application_number: 'CMA-2024-001',
-              status: 'SUBMITTED',
-              submission_date: new Date().toISOString(),
-              target_amount: 500000000,
-              completion_percentage: 100,
-              assigned_ib_advisor: null,
-              company: {
-                legal_name: 'Rwanda Tech Solutions Ltd (Demo)',
-                trading_name: 'RTS'
-              }
-            }
-          ];
-          setApplications(mockApplications);
+          // No transfers yet, show empty state
+          setApplications([]);
         }
       } catch (error) {
         console.error('Error loading applications:', error);
@@ -195,25 +202,77 @@ function IBAdvisorPageContent() {
     }
   }, [profile]);
 
-  // Load available CMA regulators
+  // Load available CMA regulators from Supabase
   useEffect(() => {
-    const loadRegulators = () => {
-      const regulatorsListKey = 'cma_regulators_list';
-      const storedList = localStorage.getItem(regulatorsListKey);
-      
-      if (storedList) {
-        const regulators = JSON.parse(storedList);
-        setAvailableRegulators(regulators);
-        
-        // Auto-select first regulator if available
-        if (regulators.length > 0 && !selectedRegulator) {
-          setSelectedRegulator(regulators[0].id);
+    const loadRegulators = async () => {
+      try {
+        // Load from Supabase API
+        const response = await fetch('/api/cma/ib-advisors');
+        if (response.ok) {
+          const data = await response.json();
+          // Filter for CMA regulators only with valid UUIDs
+          const regulators = data.users?.filter((u: any) => {
+            const isRegulator = u.role === 'CMA_REGULATOR' || u.role === 'CMA_ADMIN';
+            // Check if ID is a valid UUID format
+            const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(u.id);
+            return isRegulator && isValidUUID;
+          }) || [];
+          
+          if (regulators.length > 0) {
+            console.log('✅ Loaded', regulators.length, 'CMA regulators from Supabase');
+            setAvailableRegulators(regulators);
+            
+            // Auto-select first regulator if available
+            if (!selectedRegulator) {
+              setSelectedRegulator(regulators[0].id);
+            }
+            return;
+          } else {
+            console.log('⚠️ No valid CMA regulators found in Supabase');
+          }
         }
+        
+        // Show message if no regulators available
+        console.log('ℹ️ No CMA regulators available. Please create a CMA regulator account first.');
+        setAvailableRegulators([]);
+      } catch (error) {
+        console.error('Error loading regulators:', error);
+        setAvailableRegulators([]);
       }
     };
 
     loadRegulators();
   }, [selectedRegulator]);
+
+  // Load sections when application is selected
+  useEffect(() => {
+    const loadSections = async () => {
+      if (!selectedApplication?.id) {
+        setSections([]);
+        return;
+      }
+
+      setSectionsLoading(true);
+      try {
+        const response = await fetch(`/api/cma/applications/${selectedApplication.id}/sections`);
+        if (response.ok) {
+          const data = await response.json();
+          console.log('✅ Loaded sections from Supabase:', data.sections);
+          setSections(data.sections || []);
+        } else {
+          console.error('Failed to load sections:', response.status);
+          setSections([]);
+        }
+      } catch (error) {
+        console.error('Error loading sections:', error);
+        setSections([]);
+      } finally {
+        setSectionsLoading(false);
+      }
+    };
+
+    loadSections();
+  }, [selectedApplication?.id]);
 
   // Debug logging
   console.log('IBAdvisorPage Debug:', { 
@@ -260,8 +319,15 @@ function IBAdvisorPageContent() {
         return 'bg-yellow-100 text-yellow-800';
       case 'IB_APPROVED':
         return 'bg-green-100 text-green-800';
+      case 'CMA_REVIEW':
       case 'UNDER_REVIEW':
         return 'bg-purple-100 text-purple-800';
+      case 'QUERY_ISSUED':
+        return 'bg-orange-100 text-orange-800';
+      case 'APPROVED':
+        return 'bg-green-100 text-green-800';
+      case 'REJECTED':
+        return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -275,8 +341,15 @@ function IBAdvisorPageContent() {
         return <Edit className="h-4 w-4" />;
       case 'IB_APPROVED':
         return <CheckCircle className="h-4 w-4" />;
+      case 'CMA_REVIEW':
       case 'UNDER_REVIEW':
         return <Eye className="h-4 w-4" />;
+      case 'QUERY_ISSUED':
+        return <AlertCircle className="h-4 w-4" />;
+      case 'APPROVED':
+        return <CheckCircle className="h-4 w-4" />;
+      case 'REJECTED':
+        return <XCircle className="h-4 w-4" />;
       default:
         return <AlertCircle className="h-4 w-4" />;
     }
@@ -313,12 +386,30 @@ function IBAdvisorPageContent() {
         return;
       }
 
-      // Real mode - update database
-      await applicationService.updateApplicationStatus(
-        application.id,
-        'IB_REVIEW',
-        `Application taken by IB Advisor for review and structuring`
-      );
+      // Real mode - update database via API
+      const response = await fetch(`/api/cma/applications/${application.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          status: 'IB_REVIEW'
+        })
+      });
+
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+
+      if (!response.ok) {
+        const responseText = await response.text();
+        console.error('API Error Response:', responseText);
+        console.error('Response status:', response.status);
+        
+        try {
+          const errorData = JSON.parse(responseText);
+          throw new Error(errorData.error || 'Failed to update application status');
+        } catch (e) {
+          throw new Error(`Failed to update application status (${response.status}): ${responseText}`);
+        }
+      }
       
       // Update local state
       setApplications(prev =>
@@ -344,51 +435,46 @@ function IBAdvisorPageContent() {
       // Get selected regulator details
       const selectedRegulatorData = availableRegulators.find(r => r.id === selectedRegulator);
       
-      // Create CMA submission record in localStorage
-      const cmaSubmissionKey = `cma_submission_${selectedApplication.id}`;
-      const cmaSubmission = {
-        applicationId: selectedApplication.id,
-        companyName: selectedApplication.company?.legal_name,
-        status: 'IB_APPROVED', // This means submitted to CMA and awaiting review
-        submissionDate: new Date().toISOString(),
-        ibAdvisorId: profile?.id || 'demo-ib-advisor',
-        ibAdvisorName: profile?.full_name || profile?.username || 'IB Advisor',
-        ibComments: ibComments,
-        dealStructure: dealStructure,
-        assignedRegulatorId: selectedRegulator,
-        assignedRegulatorName: selectedRegulatorData?.full_name || 'CMA Regulator',
-        assignedRegulatorEmail: selectedRegulatorData?.email,
-        assignedRegulatorDepartment: selectedRegulatorData?.department
-      };
-      
-      localStorage.setItem(cmaSubmissionKey, JSON.stringify(cmaSubmission));
-      
-      // Also update the transfer data status
-      const transferData = localStorage.getItem(selectedApplication.id);
-      if (transferData) {
-        const transfer = JSON.parse(transferData);
-        transfer.status = 'IB_APPROVED';
-        transfer.cmaSubmissionDate = new Date().toISOString();
-        transfer.ibComments = ibComments;
-        localStorage.setItem(selectedApplication.id, JSON.stringify(transfer));
+      // Submit to CMA via the dedicated submit-to-cma endpoint
+      const response = await fetch(`/api/cma/applications/${selectedApplication.id}/submit-to-cma`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ibComments,
+          dealStructure,
+          assignedRegulatorId: selectedRegulator
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to submit to CMA');
       }
+
+      const result = await response.json();
       
-      // Update local state (we're using localStorage mode)
+      // Update local state
       setApplications(prev =>
         prev.map(app =>
           app.id === selectedApplication.id
-            ? { ...app, status: 'IB_APPROVED' }
+            ? { 
+                ...app, 
+                status: 'CMA_REVIEW',
+                assigned_cma_officer: selectedRegulator,
+                submission_date: new Date().toISOString()
+              }
             : app
         )
       );
       
       setIbComments('');
+      setSelectedRegulator('');
       const regulatorName = selectedRegulatorData?.full_name || 'CMA Regulator';
       alert(`✅ Application successfully submitted to ${regulatorName}!\n\nThe application is now in the CMA regulatory review queue.`);
       setActiveTab('applications');
     } catch (error) {
       console.error('Error submitting to CMA:', error);
-      alert('Error submitting to CMA');
+      alert(`Error submitting to CMA: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -416,8 +502,7 @@ function IBAdvisorPageContent() {
       await createFeedback({
         category: newFeedback.category,
         issue: newFeedback.issue,
-        priority: newFeedback.priority,
-        company_id: selectedApplication.company_id
+        priority: newFeedback.priority
       });
       setNewFeedback({ category: '', issue: '', priority: 'MEDIUM' });
       alert(`Feedback sent to ${selectedApplication.company?.legal_name}!`);
@@ -450,12 +535,20 @@ function IBAdvisorPageContent() {
           <div className="max-w-7xl mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <Link href="/capitallab/collaborative">
-                  <Button variant="ghost" size="sm">
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back to Hub
-                  </Button>
-                </Link>
+                <div className="flex items-center space-x-2">
+                  <Link href="/capitallab/collaborative">
+                    <Button variant="ghost" size="sm">
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      Back to Hub
+                    </Button>
+                  </Link>
+                  <span className="text-gray-300">|</span>
+                  <Link href="/shora-market">
+                    <Button variant="ghost" size="sm" className="text-purple-600 hover:text-purple-700">
+                      View Market
+                    </Button>
+                  </Link>
+                </div>
                 <div className="flex items-center space-x-3">
                   <div className="p-2 bg-green-100 rounded-lg">
                     <Briefcase className="h-6 w-6 text-green-600" />
@@ -584,9 +677,9 @@ function IBAdvisorPageContent() {
                 <Card>
                   <CardContent className="p-4 text-center">
                     <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                    <h3 className="font-semibold text-green-900">Completed</h3>
+                    <h3 className="font-semibold text-green-900">Submitted to CMA</h3>
                     <p className="text-2xl font-bold text-green-700">
-                      {applications.filter(a => a.status === 'IB_APPROVED').length}
+                      {applications.filter(a => ['CMA_REVIEW', 'QUERY_ISSUED', 'APPROVED'].includes(a.status)).length}
                     </p>
                   </CardContent>
                 </Card>
@@ -632,7 +725,7 @@ function IBAdvisorPageContent() {
                                 Take Application
                               </Button>
                             )}
-                            {(application.status === 'IB_REVIEW' || application.status === 'IB_APPROVED') && (
+                            {['IB_REVIEW', 'CMA_REVIEW', 'QUERY_ISSUED', 'APPROVED', 'REJECTED'].includes(application.status) && (
                               <Button
                                 variant="outline"
                                 onClick={() => {
@@ -659,15 +752,13 @@ function IBAdvisorPageContent() {
                 <>
                   {/* Get CMA Regulator Info */}
                   {(() => {
-                    // Load CMA submission to get regulator info
-                    const cmaSubmissionKey = `cma_submission_${selectedApplication.id}`;
-                    const cmaSubmissionData = localStorage.getItem(cmaSubmissionKey);
-                    const cmaSubmission = cmaSubmissionData ? JSON.parse(cmaSubmissionData) : null;
-                    const regulatorName = cmaSubmission?.assignedRegulatorName || 'CMA Regulator';
-                    const regulatorDepartment = cmaSubmission?.assignedRegulatorDepartment || 'Capital Markets Authority';
-
-                    // Check if application has been submitted to CMA
-                    const isSubmittedToCMA = cmaSubmission && ['IB_APPROVED', 'UNDER_REVIEW', 'QUERY_ISSUED', 'APPROVED', 'REJECTED'].includes(cmaSubmission.status);
+                    // Check if application has been submitted to CMA (using Supabase status)
+                    const isSubmittedToCMA = ['CMA_REVIEW', 'QUERY_ISSUED', 'APPROVED', 'REJECTED'].includes(selectedApplication.status);
+                    
+                    // Get regulator name if assigned
+                    const regulatorProfile = availableRegulators.find(r => r.id === selectedApplication.assigned_cma_officer);
+                    const regulatorName = regulatorProfile?.full_name || 'CMA Regulator';
+                    const regulatorDepartment = regulatorProfile?.department || 'Capital Markets Authority';
 
                     return (
                       <>
@@ -712,33 +803,27 @@ function IBAdvisorPageContent() {
 
                             {/* CMA Status Banner */}
                             <Card className={`border-2 ${
-                              cmaSubmission.status === 'APPROVED' ? 'border-green-500 bg-green-50' :
-                              cmaSubmission.status === 'REJECTED' ? 'border-red-500 bg-red-50' :
-                              cmaSubmission.status === 'QUERY_ISSUED' ? 'border-orange-500 bg-orange-50' :
+                              selectedApplication.status === 'APPROVED' ? 'border-green-500 bg-green-50' :
+                              selectedApplication.status === 'REJECTED' ? 'border-red-500 bg-red-50' :
+                              selectedApplication.status === 'QUERY_ISSUED' ? 'border-orange-500 bg-orange-50' :
                               'border-blue-500 bg-blue-50'
                             }`}>
                               <CardContent className="p-6">
                                 <div className="flex items-center justify-between">
                                   <div>
                                     <h3 className="text-lg font-semibold mb-2">
-                                      CMA Review Status: {cmaSubmission.status.replace('_', ' ')}
+                                      CMA Review Status: {selectedApplication.status.replace('_', ' ')}
                                     </h3>
                                     <div className="text-sm space-y-1">
-                                      <p><strong>Submitted:</strong> {new Date(cmaSubmission.submissionDate).toLocaleDateString()}</p>
+                                      <p><strong>Submitted:</strong> {selectedApplication.submission_date ? new Date(selectedApplication.submission_date).toLocaleDateString() : 'N/A'}</p>
                                       <p><strong>Assigned Regulator:</strong> {regulatorName}</p>
-                                      {cmaSubmission.cmaComments && (
-                                        <div className="mt-3 p-3 bg-white rounded border">
-                                          <p className="font-semibold text-gray-700 mb-1">CMA Comments:</p>
-                                          <p className="text-gray-900">{cmaSubmission.cmaComments}</p>
-                                        </div>
-                                      )}
                                     </div>
                                   </div>
                                   <div className="text-center">
-                                    {cmaSubmission.status === 'APPROVED' && <CheckCircle className="h-16 w-16 text-green-600" />}
-                                    {cmaSubmission.status === 'REJECTED' && <XCircle className="h-16 w-16 text-red-600" />}
-                                    {cmaSubmission.status === 'QUERY_ISSUED' && <AlertCircle className="h-16 w-16 text-orange-600" />}
-                                    {['IB_APPROVED', 'UNDER_REVIEW'].includes(cmaSubmission.status) && <Clock className="h-16 w-16 text-blue-600" />}
+                                    {selectedApplication.status === 'APPROVED' && <CheckCircle className="h-16 w-16 text-green-600" />}
+                                    {selectedApplication.status === 'REJECTED' && <XCircle className="h-16 w-16 text-red-600" />}
+                                    {selectedApplication.status === 'QUERY_ISSUED' && <AlertCircle className="h-16 w-16 text-orange-600" />}
+                                    {['CMA_REVIEW', 'UNDER_REVIEW'].includes(selectedApplication.status) && <Clock className="h-16 w-16 text-blue-600" />}
                                   </div>
                                 </div>
                               </CardContent>
@@ -1074,12 +1159,12 @@ function IBAdvisorPageContent() {
                             className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all"
                           >
                             <option value="">-- Select Category --</option>
-                            <option value="Financial Documents">📊 Financial Documents</option>
-                            <option value="Legal Documents">⚖️ Legal Documents</option>
-                            <option value="Governance">🏛️ Governance</option>
-                            <option value="Compliance">✅ Compliance</option>
-                            <option value="Business Information">💼 Business Information</option>
-                            <option value="Other">📝 Other</option>
+                            <option value="MISSING_INFO">📋 Missing Information</option>
+                            <option value="INCORRECT_DATA">❌ Incorrect Data</option>
+                            <option value="CLARIFICATION_NEEDED">❓ Clarification Needed</option>
+                            <option value="DOCUMENT_ISSUE">📄 Document Issue</option>
+                            <option value="COMPLIANCE_ISSUE">✅ Compliance Issue</option>
+                            <option value="OTHER">📝 Other</option>
                           </select>
                         </div>
                         

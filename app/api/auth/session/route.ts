@@ -32,6 +32,11 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Extract company role from database role (e.g., 'ISSUER_CEO' -> 'CEO')
+    const companyRole = profile.role?.startsWith('ISSUER_') 
+      ? profile.role.replace('ISSUER_', '') 
+      : null
+
     return NextResponse.json({
       user: {
         id: user.id,
@@ -39,9 +44,13 @@ export async function GET(request: NextRequest) {
         username: profile.username,
         fullName: profile.full_name,
         role: profile.role,
-        companyId: profile.company_id
+        companyId: profile.company_id,
+        companyRole: companyRole
       },
-      profile,
+      profile: {
+        ...profile,
+        company_role: companyRole
+      },
       session: session ? {
         accessToken: session.access_token,
         refreshToken: session.refresh_token,

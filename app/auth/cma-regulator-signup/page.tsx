@@ -45,49 +45,34 @@ export default function CMARegulatorSignup() {
     try {
       setLoading(true);
 
-      // Create CMA Regulator profile in localStorage
-      const regulatorId = `cma-regulator-${Date.now()}`;
-      const regulator = {
-        id: regulatorId,
-        full_name: formData.fullName,
-        email: formData.email,
-        role: 'CMA_REGULATOR',
-        employee_id: formData.employeeId,
-        department: formData.department || 'Listing & Compliance',
-        phone: formData.phone,
-        created_at: new Date().toISOString(),
-        is_active: true
-      };
-
-      // Save to localStorage
-      localStorage.setItem(`cma_regulator_${regulatorId}`, JSON.stringify(regulator));
-      
-      // Add to regulators list
-      const regulatorsListKey = 'cma_regulators_list';
-      const existingList = localStorage.getItem(regulatorsListKey);
-      const regulatorsList = existingList ? JSON.parse(existingList) : [];
-      regulatorsList.push({
-        id: regulatorId,
-        full_name: formData.fullName,
-        email: formData.email,
-        department: formData.department || 'Listing & Compliance',
-        employee_id: formData.employeeId
+      // Create CMA Regulator account via API (Supabase)
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          username: formData.email.split('@')[0],
+          full_name: formData.fullName,
+          role: 'CMA_REGULATOR',
+          phone: formData.phone,
+          metadata: {
+            employee_id: formData.employeeId,
+            department: formData.department || 'Listing & Compliance'
+          }
+        })
       });
-      localStorage.setItem(regulatorsListKey, JSON.stringify(regulatorsList));
 
-      // Save credentials for login
-      const credentials = {
-        email: formData.email,
-        password: formData.password,
-        regulatorId: regulatorId
-      };
-      localStorage.setItem(`cma_credentials_${formData.email}`, JSON.stringify(credentials));
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create account');
+      }
 
       alert('✅ CMA Regulator account created successfully!\n\nYou can now login with your credentials.');
       router.push('/auth/cma-regulator-login');
     } catch (error) {
       console.error('Signup error:', error);
-      setError('Failed to create account. Please try again.');
+      setError(error instanceof Error ? error.message : 'Failed to create account. Please try again.');
     } finally {
       setLoading(false);
     }

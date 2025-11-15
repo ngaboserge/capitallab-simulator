@@ -6,11 +6,11 @@ export async function GET() {
     const supabase = await createTypedServerClient();
 
     // Get all IB Advisor profiles
+    // Check both role='IB_ADVISOR' and is_ib_advisor=true for compatibility
     const { data: profiles, error } = await supabase
       .from('profiles')
       .select('*')
-      .eq('role', 'IB_ADVISOR')
-      .eq('is_active', true);
+      .or('role.eq.IB_ADVISOR,is_ib_advisor.eq.true');
 
     if (error) {
       console.error('Error fetching IB Advisors:', error);

@@ -29,45 +29,35 @@ export default function CMARegulatorLogin() {
     try {
       setLoading(true);
 
-      // Check credentials in localStorage
-      const credentialsKey = `cma_credentials_${formData.email}`;
-      const storedCredentials = localStorage.getItem(credentialsKey);
+      // Login via Supabase API
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password
+        })
+      });
 
-      if (!storedCredentials) {
-        setError('Invalid email or password');
+      if (!response.ok) {
+        const errorData = await response.json();
+        setError(errorData.error || 'Invalid email or password');
         setLoading(false);
         return;
       }
 
-      const credentials = JSON.parse(storedCredentials);
-
-      if (credentials.password !== formData.password) {
-        setError('Invalid email or password');
-        setLoading(false);
-        return;
-      }
-
-      // Load regulator profile
-      const regulatorKey = `cma_regulator_${credentials.regulatorId}`;
-      const regulatorData = localStorage.getItem(regulatorKey);
-
-      if (!regulatorData) {
-        setError('Regulator profile not found');
-        setLoading(false);
-        return;
-      }
-
-      const regulator = JSON.parse(regulatorData);
-
-      // Set the session manually in localStorage (simple auth context)
-      localStorage.setItem('auth_session', JSON.stringify({
-        user: regulator,
-        profile: regulator
-      }));
+      const data = await response.json();
       
-      console.log('CMA Regulator logged in:', regulator);
+      // Verify the user is a CMA regulator
+      if (data.profile?.role !== 'CMA_REGULATOR' && data.profile?.role !== 'CMA_ADMIN') {
+        setError('This account is not authorized as a CMA Regulator');
+        setLoading(false);
+        return;
+      }
 
-      // Force redirect to CMA regulator dashboard
+      console.log('CMA Regulator logged in:', data.profile);
+
+      // Redirect to CMA regulator dashboard
       window.location.href = '/capitallab/collaborative/cma-regulator';
     } catch (error) {
       console.error('Login error:', error);

@@ -7,7 +7,26 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ============================================
--- 1. PROFILES TABLE (extends auth.users)
+-- 1. COMPANIES TABLE (create first - no dependencies)
+-- ============================================
+CREATE TABLE IF NOT EXISTS companies (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  legal_name TEXT NOT NULL,
+  trading_name TEXT,
+  registration_number TEXT UNIQUE,
+  tax_id TEXT,
+  incorporation_date DATE,
+  country TEXT DEFAULT 'Rwanda',
+  address JSONB,
+  contact_info JSONB,
+  industry TEXT,
+  website TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================
+-- 2. PROFILES TABLE (create after companies)
 -- ============================================
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -27,25 +46,6 @@ CREATE TABLE IF NOT EXISTS profiles (
   phone TEXT,
   avatar_url TEXT,
   is_ib_advisor BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- ============================================
--- 2. COMPANIES TABLE
--- ============================================
-CREATE TABLE IF NOT EXISTS companies (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  legal_name TEXT NOT NULL,
-  trading_name TEXT,
-  registration_number TEXT UNIQUE,
-  tax_id TEXT,
-  incorporation_date DATE,
-  country TEXT DEFAULT 'Rwanda',
-  address JSONB,
-  contact_info JSONB,
-  industry TEXT,
-  website TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
       .from('ipo_applications')
       .select(`
         *,
-        companies (
+        companies!ipo_applications_company_id_fkey (
           legal_name,
           trading_name,
           registration_number
@@ -43,16 +43,20 @@ export async function GET(request: NextRequest) {
         )
       `) as any
 
+    // Check for company_id query parameter
+    const searchParams = request.nextUrl.searchParams
+    const companyIdParam = searchParams.get('company_id')
+
     // Filter based on role
-    if (profile.role === 'ISSUER') {
+    if (profile.role?.startsWith('ISSUER_')) {
       // Issuer sees only their company's applications
-      query = query.eq('company_id', profile.company_id)
+      query = query.eq('company_id', companyIdParam || profile.company_id)
     } else if (profile.role === 'IB_ADVISOR') {
       // IB Advisor sees applications assigned to them
       query = query.eq('assigned_ib_advisor', user.id)
     } else if (profile.role === 'CMA_REGULATOR') {
-      // CMA Regulator sees applications assigned to them or submitted ones
-      query = query.or(`assigned_cma_officer.eq.${user.id},status.in.(SUBMITTED,UNDER_REVIEW,QUERY_ISSUED)`)
+      // CMA Regulator sees applications assigned to them
+      query = query.eq('assigned_cma_officer', user.id)
     } else if (profile.role === 'CMA_ADMIN') {
       // CMA Admin sees all applications
       // No filter needed

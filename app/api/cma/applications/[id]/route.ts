@@ -15,38 +15,15 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // First get the application - cast to any to bypass type issues
     const { data: application, error } = await supabase
       .from('ipo_applications')
-      .select(`
-        *,
-        companies (*),
-        application_sections (*),
-        assigned_ib_advisor:profiles!ipo_applications_assigned_ib_advisor_fkey (
-          id,
-          full_name,
-          email,
-          role
-        ),
-        assigned_cma_officer:profiles!ipo_applications_assigned_cma_officer_fkey (
-          id,
-          full_name,
-          email,
-          role
-        ),
-        team_assignments (
-          *,
-          profiles (
-            id,
-            full_name,
-            email,
-            role
-          )
-        )
-      `)
+      .select('*')
       .eq('id', id)
-      .single()
+      .single() as any
 
     if (error) {
+      console.error('Error fetching application:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
@@ -54,26 +31,72 @@ export async function GET(
       return NextResponse.json({ error: 'Application not found' }, { status: 404 })
     }
 
+    // Get company data
+    const { data: company } = await supabase
+      .from('companies')
+      .select('*')
+      .eq('id', application.company_id)
+      .single() as any
+
+    // Get sections
+    const { data: sections } = await supabase
+      .from('application_sections')
+      .select('*')
+      .eq('application_id', id) as any
+
+    // Get IB advisor profile if assigned
+    let ibAdvisor = null
+    if (application.assigned_ib_advisor) {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, role')
+        .eq('id', application.assigned_ib_advisor)
+        .single() as any
+      ibAdvisor = data
+    }
+
+    // Get CMA officer profile if assigned
+    let cmaOfficer = null
+    if (application.assigned_cma_officer) {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, role')
+        .eq('id', application.assigned_cma_officer)
+        .single() as any
+      cmaOfficer = data
+    }
+
+    // Combine all data
+    const fullApplication = {
+      ...application,
+      companies: company,
+      application_sections: sections || [],
+      assigned_ib_advisor: ibAdvisor,
+      assigned_cma_officer: cmaOfficer
+    }
+
     // Check access permissions
     const { data: profile } = await supabase
       .from('profiles')
       .select('role, company_id')
       .eq('id', user.id)
-      .single()
+      .single() as any
 
+    const userRole = profile?.role
     const hasAccess = 
-      profile?.role === 'CMA_ADMIN' ||
-      profile?.role === 'CMA_REGULATOR' ||
-      (profile?.role.startsWith('ISSUER_') && application.company_id === profile.company_id) ||
-      (profile?.role === 'IB_ADVISOR' && application.assigned_ib_advisor === user.id)
+      userRole === 'CMA_ADMIN' ||
+      userRole === 'CMA_REGULATOR' ||
+      (userRole?.startsWith('ISSUER_') && fullApplication.company_id === profile?.company_id) ||
+      (userRole === 'IB_ADVISOR' && fullApplication.assigned_ib_advisor === user.id)
 
     if (!hasAccess) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
-    return NextResponse.json({ application })
+    return NextResponse.json({ application: fullApplication })
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('API Error:', error)
+    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
   }
 }
 
@@ -98,25 +121,26 @@ export async function PATCH(
       .from('profiles')
       .select('role, company_id')
       .eq('id', user.id)
-      .single()
+      .single() as any
 
     // Get application to check permissions
     const { data: application } = await supabase
       .from('ipo_applications')
       .select('company_id, assigned_ib_advisor, assigned_cma_officer')
       .eq('id', id)
-      .single()
+      .single() as any
 
     if (!application) {
       return NextResponse.json({ error: 'Application not found' }, { status: 404 })
     }
 
     // Check permissions based on what's being updated
+    const userRole = profile?.role
     const canUpdate = 
-      profile?.role === 'CMA_ADMIN' ||
-      (profile?.role.startsWith('ISSUER_') && application.company_id === profile.company_id) ||
-      (profile?.role === 'IB_ADVISOR' && application.assigned_ib_advisor === user.id) ||
-      (profile?.role === 'CMA_REGULATOR' && application.assigned_cma_officer === user.id)
+      userRole === 'CMA_ADMIN' ||
+      (userRole?.startsWith('ISSUER_') && application.company_id === profile?.company_id) ||
+      (userRole === 'IB_ADVISOR' && application.assigned_ib_advisor === user.id) ||
+      (userRole === 'CMA_REGULATOR' && application.assigned_cma_officer === user.id)
 
     if (!canUpdate) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
@@ -130,7 +154,7 @@ export async function PATCH(
       })
       .eq('id', id)
       .select()
-      .single()
+      .single() as any
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
@@ -138,6 +162,7 @@ export async function PATCH(
 
     return NextResponse.json({ application: updated })
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    console.error('API Error:', error)
+    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
   }
 }

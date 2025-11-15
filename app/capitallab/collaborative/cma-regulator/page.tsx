@@ -44,6 +44,10 @@ interface Application {
     legal_name: string;
     trading_name?: string;
   };
+  companies?: {
+    legal_name: string;
+    trading_name?: string;
+  };
 }
 
 function CMARegulatorPageContent() {
@@ -82,11 +86,38 @@ function CMARegulatorPageContent() {
         setLoading(true);
         setError(null);
 
-        // Load applications submitted by IB Advisors from localStorage
+        if (!profile?.id) {
+          setLoading(false);
+          return;
+        }
+
+        // Load applications from Supabase (API automatically filters by assigned_cma_officer)
+        try {
+          const response = await fetch('/api/cma/applications');
+          if (response.ok) {
+            const data = await response.json();
+            console.log('✅ Loaded', data.applications?.length || 0, 'applications from Supabase for CMA regulator');
+            console.log('📊 Application data:', JSON.stringify(data.applications, null, 2));
+            
+            if (data.applications && data.applications.length > 0) {
+              setApplications(data.applications);
+              setLoading(false);
+              return;
+            } else {
+              console.log('⚠️ No applications found in Supabase for this CMA regulator');
+            }
+          } else {
+            console.warn('❌ Supabase API returned error:', response.status);
+          }
+        } catch (apiError) {
+          console.error('❌ Failed to load from Supabase:', apiError);
+        }
+
+        // Fallback to localStorage for backward compatibility
         const allKeys = Object.keys(localStorage);
         const ibTransferKeys = allKeys.filter(key => key.startsWith('ib_transfer_'));
         
-        console.log('CMA Regulator loading applications...');
+        console.log('CMA Regulator loading applications from localStorage...');
         console.log('Found IB transfer keys:', ibTransferKeys.length);
 
         const loadedApplications: Application[] = [];
@@ -144,42 +175,10 @@ function CMARegulatorPageContent() {
           }
         });
 
-        console.log('Loaded applications for CMA review:', loadedApplications.length);
+        console.log('Loaded applications for CMA review from localStorage:', loadedApplications.length);
 
-        if (loadedApplications.length === 0) {
-          // Show demo data if no real applications
-          const mockApplications: Application[] = [
-            {
-              id: 'demo-1',
-              company_id: 'demo-company-1',
-              application_number: 'CMA-2024-001',
-              status: 'IB_APPROVED',
-              submission_date: new Date().toISOString(),
-              target_amount: 500000000,
-              completion_percentage: 85,
-              company: {
-                legal_name: 'Rwanda Tech Solutions Ltd (Demo)',
-                trading_name: 'RTS'
-              }
-            },
-            {
-              id: 'demo-2',
-              company_id: 'demo-company-2',
-              application_number: 'CMA-2024-002',
-              status: 'UNDER_REVIEW',
-              submission_date: new Date(Date.now() - 86400000).toISOString(),
-              target_amount: 750000000,
-              completion_percentage: 92,
-              company: {
-                legal_name: 'Green Energy Rwanda PLC (Demo)',
-                trading_name: 'GER'
-              }
-            }
-          ];
-          setApplications(mockApplications);
-        } else {
-          setApplications(loadedApplications);
-        }
+        // Only use localStorage data if we have any
+        setApplications(loadedApplications);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to load applications';
         console.error('Error loading applications:', error);
@@ -234,34 +233,53 @@ function CMARegulatorPageContent() {
   const handleApprove = async () => {
     if (!selectedApplication) return;
     
+    if (!confirm('Are you sure you want to APPROVE this application? This will create a listing on Shora Exchange.')) {
+      return;
+    }
+    
     try {
-      // Update CMA submission record in localStorage
-      const cmaSubmissionKey = `cma_submission_${selectedApplication.id}`;
-      const cmaSubmissionData = localStorage.getItem(cmaSubmissionKey);
+      setLoading(true);
       
-      if (cmaSubmissionData) {
-        const cmaSubmission = JSON.parse(cmaSubmissionData);
-        cmaSubmission.status = 'APPROVED';
-        cmaSubmission.cmaDecisionDate = new Date().toISOString();
-        cmaSubmission.cmaReviewerName = profile?.full_name || 'CMA Regulator';
-        cmaSubmission.cmaComments = reviewComment;
-        localStorage.setItem(cmaSubmissionKey, JSON.stringify(cmaSubmission));
+      // Call Supabase API to approve application
+      const response = await fetch(`/api/cma/applications/${selectedApplication.id}/approve`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          comments: reviewComment
+        })
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to approve application');
       }
       
-      // Update local state (localStorage mode)
+      const result = await response.json();
+      console.log('✅ Application approved:', result);
+      
+      // Update local state
       setApplications(prev => 
         prev.map(app => 
           app.id === selectedApplication.id 
-            ? { ...app, status: 'APPROVED' }
+            ? { ...app, status: 'CMA_APPROVED' }
             : app
         )
       );
       
+      setSelectedApplication(prev => prev ? { ...prev, status: 'CMA_APPROVED' } : null);
       setReviewComment('');
-      alert('✅ Application APPROVED by CMA!\n\nThe company can now proceed to SHORA Exchange listing.');
+      
+      alert(`✅ Application APPROVED by CMA!\n\n` +
+            `Listing ID: ${result.listing?.id || 'N/A'}\n` +
+            `The company can now proceed to SHORA Exchange listing.`);
+      
     } catch (error) {
       console.error('Error approving application:', error);
-      alert('Error approving application');
+      alert(`Error approving application: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -271,34 +289,50 @@ function CMARegulatorPageContent() {
       return;
     }
     
+    if (!confirm('Are you sure you want to REJECT this application? This action cannot be undone.')) {
+      return;
+    }
+    
     try {
-      // Update CMA submission record in localStorage
-      const cmaSubmissionKey = `cma_submission_${selectedApplication.id}`;
-      const cmaSubmissionData = localStorage.getItem(cmaSubmissionKey);
+      setLoading(true);
       
-      if (cmaSubmissionData) {
-        const cmaSubmission = JSON.parse(cmaSubmissionData);
-        cmaSubmission.status = 'REJECTED';
-        cmaSubmission.cmaDecisionDate = new Date().toISOString();
-        cmaSubmission.cmaReviewerName = profile?.full_name || 'CMA Regulator';
-        cmaSubmission.cmaComments = reviewComment;
-        localStorage.setItem(cmaSubmissionKey, JSON.stringify(cmaSubmission));
+      // Call Supabase API to reject application
+      const response = await fetch(`/api/cma/applications/${selectedApplication.id}/reject`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reason: reviewComment,
+          comments: reviewComment
+        })
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to reject application');
       }
       
-      // Update local state (localStorage mode)
+      const result = await response.json();
+      console.log('❌ Application rejected:', result);
+      
+      // Update local state
       setApplications(prev => 
         prev.map(app => 
           app.id === selectedApplication.id 
-            ? { ...app, status: 'REJECTED' }
+            ? { ...app, status: 'CMA_REJECTED' }
             : app
         )
       );
       
+      setSelectedApplication(prev => prev ? { ...prev, status: 'CMA_REJECTED' } : null);
       setReviewComment('');
+      
       alert('❌ Application REJECTED by CMA.\n\nThe issuer and IB Advisor will be notified with the rejection reasons.');
+      
     } catch (error) {
       console.error('Error rejecting application:', error);
-      alert('Error rejecting application');
+      alert(`Error rejecting application: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -374,12 +408,20 @@ function CMARegulatorPageContent() {
           <div className="max-w-7xl mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <Link href="/capitallab/collaborative">
-                  <Button variant="ghost" size="sm">
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back to Hub
-                  </Button>
-                </Link>
+                <div className="flex items-center space-x-2">
+                  <Link href="/capitallab/collaborative">
+                    <Button variant="ghost" size="sm">
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      Back to Hub
+                    </Button>
+                  </Link>
+                  <span className="text-gray-300">|</span>
+                  <Link href="/shora-market">
+                    <Button variant="ghost" size="sm" className="text-purple-600 hover:text-purple-700">
+                      View Market
+                    </Button>
+                  </Link>
+                </div>
                 <div className="flex items-center space-x-3">
                   <div className="p-2 bg-red-100 rounded-lg">
                     <Shield className="h-6 w-6 text-red-600" />
@@ -559,7 +601,19 @@ function CMARegulatorPageContent() {
                       )}
                     </div>
                   ) : filteredApplications.length === 0 ? (
-                    <div className="p-4 text-center text-gray-500">No applications found</div>
+                    <div className="p-8 text-center">
+                      <FileText className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-600 font-medium mb-2">No Applications Assigned</p>
+                      <p className="text-sm text-gray-500">
+                        {filterStatus === 'all' 
+                          ? 'You currently have no applications assigned for review.'
+                          : `No applications with status: ${filterStatus.replace('_', ' ')}`
+                        }
+                      </p>
+                      <p className="text-xs text-gray-400 mt-2">
+                        Applications will appear here once they are submitted to CMA and assigned to you.
+                      </p>
+                    </div>
                   ) : (
                     <div className="space-y-3 p-4">
                       {filteredApplications.map((application) => {
@@ -582,10 +636,10 @@ function CMARegulatorPageContent() {
                             <div className="flex items-start justify-between mb-3">
                               <div className="flex-1">
                                 <h3 className="font-medium text-sm text-gray-900 mb-1">
-                                  {application.company?.legal_name || 'Unknown Company'}
+                                  {application.companies?.legal_name || application.company?.legal_name || 'Unknown Company'}
                                 </h3>
                                 <p className="text-xs text-gray-500">
-                                  {application.company?.trading_name && `(${application.company.trading_name})`}
+                                  {(application.companies?.trading_name || application.company?.trading_name) && `(${application.companies?.trading_name || application.company?.trading_name})`}
                                 </p>
                               </div>
                               <Badge className={getStatusColor(application.status)}>
@@ -697,7 +751,7 @@ function CMARegulatorPageContent() {
                           <div>
                             <span className="text-lg">CMA Regulatory Review</span>
                             <p className="text-sm text-gray-600 font-normal">
-                              {selectedApplication.company?.legal_name}
+                              {selectedApplication.companies?.legal_name || selectedApplication.company?.legal_name || 'Unknown Company'}
                             </p>
                           </div>
                         </div>
